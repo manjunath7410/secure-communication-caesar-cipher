@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#0A0B08" rx="96"/>
+  <rect x="16" y="16" width="480" height="480" fill="none" stroke="#2A2D24" stroke-width="4" rx="80"/>
+  
+  <!-- Outer Cipher Dial Rings -->
+  <circle cx="256" cy="256" r="208" fill="none" stroke="#1F221A" stroke-width="14"/>
+  <circle cx="256" cy="256" r="180" fill="#0F110C" stroke="#A3B18A" stroke-width="4" stroke-dasharray="12 8"/>
+  
+  <!-- 26 Shift Dial Ticks representing full alphabet -->
+  <g stroke="#A3B18A" stroke-width="3" opacity="0.7">
+    <line x1="256" y1="64" x2="256" y2="88"/>
+    <line x1="256" y1="424" x2="256" y2="448"/>
+    <line x1="64" y1="256" x2="88" y2="256"/>
+    <line x1="424" y1="256" x2="448" y2="256"/>
+    <line x1="120" y1="120" x2="138" y2="138"/>
+    <line x1="392" y1="120" x2="374" y2="138"/>
+    <line x1="120" y1="392" x2="138" y2="374"/>
+    <line x1="392" y1="392" x2="374" y2="374"/>
+  </g>
+  
+  <!-- Central Heavy Tactical Shield -->
+  <path d="M256 120 L356 160 V264 C356 332 312 384 256 408 C200 384 156 332 156 264 V160 Z" 
+        fill="#141611" stroke="#A3B18A" stroke-width="8" stroke-linejoin="round"/>
+        
+  <!-- Inner Shield Glow & Accent -->
+  <path d="M256 144 L336 178 V260 C336 314 300 356 256 378 C212 356 176 314 176 260 V178 Z" 
+        fill="none" stroke="#2A2D24" stroke-width="3"/>
+        
+  <!-- Lock Core / Tactical Keyhole Glyph -->
+  <circle cx="256" cy="232" r="28" fill="#A3B18A"/>
+  <path d="M246 232 L240 304 H272 L266 232 Z" fill="#A3B18A"/>
+  
+  <!-- Cipher Core Dot -->
+  <circle cx="256" cy="256" r="10" fill="#0A0B08"/>
+</svg>

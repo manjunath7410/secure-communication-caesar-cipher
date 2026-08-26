@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192" fill="none">
+  <rect width="192" height="192" rx="44" fill="#0F172A"/>
+  <defs>
+    <linearGradient id="pwa-g1-192" x1="24" y1="24" x2="168" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#2563EB"/>
+      <stop offset="50%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+    <linearGradient id="pwa-g2-192" x1="168" y1="80" x2="24" y2="176" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="50%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+    <linearGradient id="pwa-core-192" x1="80" y1="80" x2="112" y2="112" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#2563EB"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(16, 16) scale(3.3333)">
+    <path d="M 12 18 C 14 10.5 20.5 6 27.5 6 C 36 6 42.5 12.5 42.5 21 C 42.5 24.5 41.3 27.8 39.2 30.5" stroke="url(#pwa-g1-192)" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M 36.5 35.5 C 33.5 39.5 28.8 42 23.5 42 C 14 42 6 34 6 24 C 6 20.5 7.2 17.2 9.3 14.5" stroke="url(#pwa-g2-192)" stroke-width="4.5" stroke-linecap="round"/>
+    <path d="M 23 16 A 8 8 0 0 1 31 24" stroke="#38BDF8" stroke-width="3.5" stroke-linecap="round"/>
+    <circle cx="23.5" cy="24" r="3.5" fill="url(#pwa-core-192)"/>
+  </g>
+</svg>

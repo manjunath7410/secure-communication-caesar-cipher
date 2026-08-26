@@ -1,0 +1,61 @@
+{
+  "name": "Secure Military Communication | Caesar Cipher Console",
+  "short_name": "CaesarCmd",
+  "description": "Progressive Web App for classical Caesar Cipher encryption, decryption, 26-shift brute-force attack demonstration, and cryptanalysis research.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0A0B08",
+  "theme_color": "#0F110C",
+  "categories": ["utilities", "education", "security"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Encrypt Engine",
+      "short_name": "Encrypt",
+      "description": "Open Caesar Encryption Workspace",
+      "url": "/#encrypt",
+      "icons": [{ "src": "/icons/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Decrypt Engine",
+      "short_name": "Decrypt",
+      "description": "Open Caesar Decryption Workspace",
+      "url": "/#decrypt",
+      "icons": [{ "src": "/icons/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Brute-Force Attack",
+      "short_name": "BruteForce",
+      "description": "26-Shift Key Exhaustion Demonstration",
+      "url": "/#bruteforce",
+      "icons": [{ "src": "/icons/icon-192.svg", "sizes": "192x192" }]
+    }
+  ]
+}
