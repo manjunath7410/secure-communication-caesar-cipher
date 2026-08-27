@@ -18,7 +18,7 @@ export class BiometricService {
     // 1. Android Native via Capacitor
     if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
       try {
-        const plugin = (Capacitor.Plugins as any).BiometricSecurity;
+        const plugin = (Capacitor as any).Plugins?.BiometricSecurity;
         if (plugin && typeof plugin.isAvailable === 'function') {
           const result = await plugin.isAvailable();
           const availability: BiometricAvailability = {
@@ -91,7 +91,7 @@ export class BiometricService {
     // 1. Android Native BiometricPrompt
     if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
       try {
-        const plugin = (Capacitor.Plugins as any).BiometricSecurity;
+        const plugin = (Capacitor as any).Plugins?.BiometricSecurity;
         if (plugin && typeof plugin.authenticate === 'function') {
           const result = await plugin.authenticate({
             title,
@@ -152,7 +152,7 @@ export class BiometricService {
   public static async setFlagSecure(enabled: boolean): Promise<boolean> {
     if (Capacitor.isNativePlatform() && Capacitor.getPlatform() === 'android') {
       try {
-        const plugin = (Capacitor.Plugins as any).BiometricSecurity;
+        const plugin = (Capacitor as any).Plugins?.BiometricSecurity;
         if (plugin && typeof plugin.setFlagSecure === 'function') {
           const result = await plugin.setFlagSecure({ enabled });
           return !!result.success;

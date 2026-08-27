@@ -17,7 +17,7 @@ interface AppLockContextType {
   lockoutSecondsLeft: number;
   lockNow: () => void;
   unlockWithPin: (pin: string) => Promise<{ success: boolean; error?: string; lockoutSeconds?: number }>;
-  unlockWithBiometrics: () => Promise<{ success: boolean; error?: string }>;
+  unlockWithBiometrics: () => Promise<{ success: boolean; error?: string; cancelled?: boolean }>;
   setPin: (pin: string) => Promise<void>;
   changePin: (currentPin: string, newPin: string) => Promise<boolean>;
   disableAppLock: (pin?: string) => Promise<boolean>;

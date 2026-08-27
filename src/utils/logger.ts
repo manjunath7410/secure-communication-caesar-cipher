@@ -30,7 +30,7 @@ class TacticalLogger {
       this.logs.pop();
     }
 
-    if (process.env.NODE_ENV !== 'production') {
+    if (typeof import.meta !== 'undefined' && (import.meta as any).env?.MODE !== 'production') {
       const prefix = `[${entry.timestamp}] [${level.toUpperCase()}] [${module}]`;
       if (level === 'error') {
         console.error(prefix, message, metadata || '');

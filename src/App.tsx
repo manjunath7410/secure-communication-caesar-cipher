@@ -187,7 +187,10 @@ export default function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <AppLockProvider>
+          <AppLockScreen />
+          <AppContent />
+        </AppLockProvider>
       </AuthProvider>
     </ThemeProvider>
   );
