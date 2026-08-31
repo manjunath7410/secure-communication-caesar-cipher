@@ -23,6 +23,7 @@ import { RegisterPage } from './pages/RegisterPage';
 import { EncryptPage } from './pages/EncryptPage';
 import { DecryptPage } from './pages/DecryptPage';
 import { HistoryPage } from './pages/HistoryPage';
+import { MapPage } from './pages/MapPage';
 import { LearnPage } from './pages/LearnPage';
 import { BruteForcePage } from './pages/BruteForcePage';
 import { AboutPage } from './pages/AboutPage';
@@ -142,6 +143,10 @@ function AppContent() {
 
           {currentView === 'history' && (
             <HistoryPage onNavigate={setCurrentView} onToast={handleToast} />
+          )}
+
+          {currentView === 'map' && (
+            <MapPage onNavigate={setCurrentView} onToast={handleToast} />
           )}
 
           {(currentView === 'learn' || currentView === 'bruteforce' || currentView === 'about' || currentView === 'security' || currentView === 'architecture') && (

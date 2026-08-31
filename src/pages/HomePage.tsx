@@ -8,6 +8,8 @@ import {
   Copy,
   Check,
   BookOpen,
+  MapPin,
+  Radio,
 } from 'lucide-react';
 import { AppView } from '../types/navigation';
 import { useOperationsLog } from '../hooks/useOperationsLog';
@@ -188,25 +190,47 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
         )}
       </div>
 
-      {/* Educational Quick Card */}
-      <div
-        onClick={() => onNavigate('learn')}
-        className="p-5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-neutral-900 dark:to-neutral-900 border border-blue-100 dark:border-neutral-800 flex items-center justify-between gap-4 cursor-pointer hover:border-blue-300 dark:hover:border-neutral-700 transition-all"
-      >
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
-            <BookOpen className="w-5 h-5" />
+      {/* Educational & Map Quick Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div
+          onClick={() => onNavigate('map')}
+          className="p-5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 flex items-center justify-between gap-4 cursor-pointer hover:border-blue-300 dark:hover:border-blue-800 transition-all shadow-2xs group"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <MapPin className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                Relay Station Map
+              </h3>
+              <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
+                Explore global crypto nodes, transmission frequencies, &amp; routing paths.
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-              How does the Caesar Cipher work?
-            </h3>
-            <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
-              Explore shift diagrams, letter frequency, and why it is easy to break.
-            </p>
-          </div>
+          <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-blue-500 shrink-0 transition-colors" />
         </div>
-        <ArrowRight className="w-4 h-4 text-neutral-500 shrink-0" />
+
+        <div
+          onClick={() => onNavigate('learn')}
+          className="p-5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-neutral-900 dark:to-neutral-900 border border-blue-100 dark:border-neutral-800 flex items-center justify-between gap-4 cursor-pointer hover:border-blue-300 dark:hover:border-neutral-700 transition-all shadow-2xs group"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+              <BookOpen className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
+                How does the Cipher work?
+              </h3>
+              <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
+                Explore shift diagrams, letter frequency, and security limits.
+              </p>
+            </div>
+          </div>
+          <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-blue-500 shrink-0 transition-colors" />
+        </div>
       </div>
     </div>
   );

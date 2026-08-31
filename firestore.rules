@@ -1,0 +1,97 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny fallback
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isValidUserProfile(data, userId) {
+      return data.userId is string && data.userId == userId &&
+        data.email is string && data.email.size() <= 256 &&
+        (!('displayName' in data) || (data.displayName is string && data.displayName.size() <= 100)) &&
+        (!('username' in data) || (data.username is string && data.username.size() <= 50)) &&
+        (!('callsign' in data) || (data.callsign is string && data.callsign.size() <= 50)) &&
+        (!('clearanceLevel' in data) || (data.clearanceLevel in ['CONFIDENTIAL', 'SECRET', 'TOP_SECRET'])) &&
+        data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidVaultMessage(data, userId) {
+      return data.userId is string && data.userId == userId &&
+        data.ciphertext is string && data.ciphertext.size() <= 25000 &&
+        data.shift is number && data.shift >= 0 && data.shift <= 25 &&
+        data.operationType in ['ENCRYPT', 'DECRYPT'] &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
+        (!('characterCount' in data) || (data.characterCount is number && data.characterCount >= 0)) &&
+        data.createdAt is string && data.createdAt.size() <= 64;
+    }
+
+    function isValidActivityRecord(data, userId) {
+      return data.userId is string && data.userId == userId &&
+        data.type in ['ENCRYPT', 'DECRYPT', 'BRUTE_FORCE', 'KEY_CHANGE', 'LOGIN', 'CLEAR'] &&
+        (!('details' in data) || (data.details is string && data.details.size() <= 500)) &&
+        (!('shift' in data) || (data.shift is number && data.shift >= 0 && data.shift <= 25)) &&
+        data.timestamp is string && data.timestamp.size() <= 64;
+    }
+
+    // User profile documents: /users/{userId}
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Users can only access their own profile by ID, no global user enumeration
+
+      allow create: if isOwner(userId) && isValidId(userId) &&
+        isValidUserProfile(request.resource.data, userId);
+
+      allow update: if isOwner(userId) && isValidId(userId) &&
+        isValidUserProfile(request.resource.data, userId) &&
+        request.resource.data.userId == resource.data.userId &&
+        request.resource.data.createdAt == resource.data.createdAt;
+
+      allow delete: if isOwner(userId) && isValidId(userId);
+
+      // User's encrypted message vault: /users/{userId}/messages/{messageId}
+      match /messages/{messageId} {
+        allow get: if isOwner(userId) && isValidId(messageId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) && isValidId(messageId) &&
+          isValidVaultMessage(request.resource.data, userId);
+
+        allow update: if isOwner(userId) && isValidId(messageId) &&
+          isValidVaultMessage(request.resource.data, userId) &&
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.createdAt == resource.data.createdAt;
+
+        allow delete: if isOwner(userId) && isValidId(messageId);
+      }
+
+      // User's activity telemetry: /users/{userId}/activities/{activityId}
+      match /activities/{activityId} {
+        allow get: if isOwner(userId) && isValidId(activityId);
+        allow list: if isOwner(userId);
+
+        allow create: if isOwner(userId) && isValidId(activityId) &&
+          isValidActivityRecord(request.resource.data, userId);
+
+        allow update: if false; // Activity audit records are append-only / immutable
+
+        allow delete: if isOwner(userId) && isValidId(activityId);
+      }
+    }
+  }
+}

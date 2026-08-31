@@ -350,6 +350,68 @@ class AuthService {
   }
 
   /**
+   * Firebase Google Popup Sign-in & Firestore User Sync
+   */
+  public async signInWithFirebaseGoogle(): Promise<User> {
+    try {
+      const { signInWithPopup } = await import('firebase/auth');
+      const { doc, setDoc, getDoc } = await import('firebase/firestore');
+      const { auth, googleProvider, db } = await import('./firebase');
+
+      const result = await signInWithPopup(auth, googleProvider);
+      const fbUser = result.user;
+
+      const normalizedUser: User = {
+        id: fbUser.uid,
+        email: fbUser.email || '',
+        username: (fbUser.displayName || fbUser.email?.split('@')[0] || 'user').replace(/[^a-zA-Z0-9_-]/g, '_').toLowerCase(),
+        fullName: fbUser.displayName || 'Google User',
+        callsign: fbUser.displayName ? fbUser.displayName.toUpperCase().slice(0, 12) : null,
+        clearanceLevel: 'TOP_SECRET',
+        isActive: true,
+        isEmailVerified: fbUser.emailVerified,
+        createdAt: new Date().toISOString(),
+        lastLoginAt: new Date().toISOString(),
+      };
+
+      // Sync user profile document in Firestore (/users/{userId})
+      try {
+        const userDocRef = doc(db, 'users', fbUser.uid);
+        const existingDoc = await getDoc(userDocRef);
+        const now = new Date().toISOString();
+        if (!existingDoc.exists()) {
+          await setDoc(userDocRef, {
+            userId: fbUser.uid,
+            email: fbUser.email || '',
+            displayName: fbUser.displayName || '',
+            username: normalizedUser.username,
+            callsign: normalizedUser.callsign || '',
+            clearanceLevel: 'TOP_SECRET',
+            createdAt: now,
+          });
+        }
+      } catch (firestoreErr) {
+        console.warn('Firestore profile sync note:', firestoreErr);
+      }
+
+      const token = await fbUser.getIdToken();
+      this.persistSession(token, normalizedUser, true);
+      return normalizedUser;
+    } catch (err: any) {
+      if (err.code === 'auth/popup-closed-by-user') {
+        throw {
+          status: 400,
+          message: 'Sign in was cancelled.',
+        } as AuthError;
+      }
+      throw {
+        status: 500,
+        message: err.message || 'Firebase Google authentication failed.',
+      } as AuthError;
+    }
+  }
+
+  /**
    * Request Password Reset (POST /api/v1/auth/forgot-password)
    */
   public async forgotPassword(email: string): Promise<{ message: string }> {
@@ -491,6 +553,15 @@ class AuthService {
     this.inMemoryToken = null;
     this.inMemoryUser = null;
     defaultApiClient.setToken(null);
+
+    // Safely sign out of Firebase auth if active
+    try {
+      import('./firebase').then(({ auth }) => {
+        if (auth.currentUser) {
+          import('firebase/auth').then(({ signOut }) => signOut(auth).catch(() => {}));
+        }
+      }).catch(() => {});
+    } catch {}
 
     if (typeof window !== 'undefined') {
       try {

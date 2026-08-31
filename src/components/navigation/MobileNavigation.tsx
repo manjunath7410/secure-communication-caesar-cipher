@@ -4,6 +4,7 @@ import {
   Lock,
   Unlock,
   History,
+  MapPin,
   BookOpen,
 } from 'lucide-react';
 import { AppView } from '../../types/navigation';
@@ -22,6 +23,7 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
     { id: 'encrypt', label: 'Encrypt', icon: Lock },
     { id: 'decrypt', label: 'Decrypt', icon: Unlock },
     { id: 'history', label: 'History', icon: History },
+    { id: 'map', label: 'Map', icon: MapPin },
     { id: 'learn', label: 'Learn', icon: BookOpen },
   ];
 

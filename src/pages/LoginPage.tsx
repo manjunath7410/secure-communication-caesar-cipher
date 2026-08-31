@@ -23,7 +23,7 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onToast }) => {
-  const { login, loginWithGoogle, isAuthenticated, user, logout, isPasskeySupported } = useAuth();
+  const { login, loginWithGoogle, signInWithFirebaseGoogle, isAuthenticated, user, logout, isPasskeySupported } = useAuth();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -101,17 +101,17 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigate, onToast }) => 
     setErrorMessage(null);
 
     try {
-      // Check if Google GSI (Google Identity Services) client is loaded
-      if (typeof window !== 'undefined' && (window as any).google?.accounts?.id) {
-        // Trigger Google One Tap / Token Client
-        (window as any).google.accounts.id.prompt();
-        return;
-      }
-
-      // If Google OAuth is not yet configured with client ID, show informative guide
-      setShowGoogleConfigModal(true);
+      const loggedUser = await signInWithFirebaseGoogle();
+      setIsSuccess(true);
+      onToast?.('success', 'Google Sign-In', `Welcome, ${loggedUser.fullName || loggedUser.username}!`);
+      setTimeout(() => {
+        onNavigate('home');
+      }, 350);
     } catch (err: any) {
-      setErrorMessage(err.message || 'Google authentication encountered an issue.');
+      if (err.message && !err.message.includes('cancelled')) {
+        setErrorMessage(err.message || 'Firebase Google authentication encountered an issue.');
+        onToast?.('error', 'Google Sign-In Failed', err.message || 'Authentication error.');
+      }
     } finally {
       setIsGoogleLoading(false);
     }

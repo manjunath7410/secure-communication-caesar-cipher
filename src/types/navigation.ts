@@ -4,6 +4,7 @@ export type AppView =
   | 'encrypt'
   | 'decrypt'
   | 'history'
+  | 'map'
   | 'learn'
   | 'settings'
   | 'account'

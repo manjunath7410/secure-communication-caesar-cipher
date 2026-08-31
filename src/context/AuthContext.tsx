@@ -6,11 +6,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { User, LoginPayload, RegisterPayload, AuthState } from '../types/auth';
 import { authService } from '../services/authService';
+import { testFirestoreConnection } from '../services/firebase';
 
 interface AuthContextType extends AuthState {
   login: (payload: LoginPayload) => Promise<User>;
   register: (payload: RegisterPayload) => Promise<{ user: User; requiresVerification?: boolean }>;
   loginWithGoogle: (credential: string) => Promise<User>;
+  signInWithFirebaseGoogle: () => Promise<User>;
   forgotPassword: (email: string) => Promise<{ message: string }>;
   resetPassword: (token: string, newPass: string) => Promise<{ message: string }>;
   resendVerification: (email: string) => Promise<{ message: string }>;
@@ -33,6 +35,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   useEffect(() => {
+    // Test Firebase Firestore connection on initial boot
+    testFirestoreConnection().catch(() => {});
+
     // Initial verification of stored token
     const initAuth = async () => {
       try {
@@ -88,6 +93,18 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setUser(response.user);
       setToken(response.accessToken);
       return response.user;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const signInWithFirebaseGoogle = async (): Promise<User> => {
+    setIsLoading(true);
+    try {
+      const u = await authService.signInWithFirebaseGoogle();
+      setUser(u);
+      setToken(authService.getToken());
+      return u;
     } finally {
       setIsLoading(false);
     }
