@@ -410,7 +410,8 @@ apiRouter.post('/auth/login', (req: Request, res: Response) => {
 apiRouter.post('/auth/register', (req: Request, res: Response) => {
   const email = (req.body.email || '').trim().toLowerCase();
   const fullName = (req.body.fullName || req.body.full_name || req.body.name || req.body.username || '').trim();
-  const rawUsername = (req.body.username || email.split('@')[0] || 'user').trim().toLowerCase();
+  const rawUsername = (req.body.username || email.split('@')[0] || 'user').trim();
+  const username = rawUsername.toLowerCase();
   const password = req.body.password;
   const callsign = (req.body.callsign || '').trim() || null;
   const clearanceLevel = (req.body.clearanceLevel || req.body.clearance_level || 'SECRET') as any;
@@ -422,6 +423,15 @@ apiRouter.post('/auth/register', (req: Request, res: Response) => {
       status_code: 422,
       detail: 'Enter a valid email address.',
       field: 'email',
+    });
+  }
+
+  // Username validation: alphanumeric/underscores only, no spaces
+  if (rawUsername && !/^[a-zA-Z0-9_-]+$/.test(rawUsername)) {
+    return res.status(422).json({
+      status_code: 422,
+      detail: 'Username must contain only alphanumeric characters, underscores, or hyphens (no spaces).',
+      field: 'username',
     });
   }
 
@@ -442,6 +452,14 @@ apiRouter.post('/auth/register', (req: Request, res: Response) => {
     });
   }
 
+  if (usersDb.has(username)) {
+    return res.status(409).json({
+      status_code: 409,
+      detail: 'An account with this username already exists.',
+      field: 'username',
+    });
+  }
+
   // Create User
   const salt = crypto.randomBytes(16).toString('hex');
   const passwordHash = hashPassword(password, salt);
@@ -450,8 +468,8 @@ apiRouter.post('/auth/register', (req: Request, res: Response) => {
   const newUser: UserRecord = {
     id: userId,
     email,
-    username: rawUsername || email.split('@')[0],
-    fullName: fullName || rawUsername || 'User',
+    username: username || email.split('@')[0],
+    fullName: fullName || username || 'User',
     passwordHash,
     salt,
     clearanceLevel: ['CONFIDENTIAL', 'SECRET', 'TOP_SECRET'].includes(clearanceLevel) ? clearanceLevel : 'SECRET',
@@ -705,6 +723,28 @@ apiRouter.get('/messages', requireAuth, (req: Request, res: Response) => {
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
   res.json(userMessages);
+});
+
+apiRouter.get('/messages/:id', requireAuth, (req: Request, res: Response) => {
+  const currentUser = (req as any).user as UserRecord;
+  const messageId = req.params.id;
+  const msg = messagesDb.get(messageId);
+
+  if (!msg) {
+    return res.status(404).json({
+      status_code: 404,
+      detail: 'Message not found in vault.',
+    });
+  }
+
+  if (msg.userId !== currentUser.id) {
+    return res.status(403).json({
+      status_code: 403,
+      detail: "You do not have clearance to view another operator's record.",
+    });
+  }
+
+  res.json(msg);
 });
 
 apiRouter.post('/messages', requireAuth, (req: Request, res: Response) => {

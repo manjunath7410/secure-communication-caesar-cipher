@@ -13,11 +13,15 @@ import { runBruteForceTests } from './bruteForce.test';
 import { runPWATests } from './pwa.test';
 import { runIntegrationTests } from './integration.test';
 import { runAndroidQATests } from './androidQA.test';
+import { defaultApiClient } from '../services/apiClient';
 
 async function main() {
   console.log('===============================================================');
-  console.log('  SECURE MILITARY COMMUNICATION - AUTOMATED TEST RUNNER');
+  console.log('  SECURE COMMUNICATION - AUTOMATED TEST RUNNER');
   console.log('===============================================================\n');
+
+  // Configure base URL for Node.js test environment against local dev server
+  defaultApiClient.setBaseUrl('http://127.0.0.1:3000/api/v1');
 
   let totalPassed = 0;
   let totalFailed = 0;

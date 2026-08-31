@@ -7,10 +7,15 @@ import {
   Sparkles,
   ArrowRight,
   Flame,
+  ChevronDown,
+  ChevronUp,
+  HelpCircle,
 } from 'lucide-react';
 import { decrypt, isValidShift, normalizeShift } from '../services/caesarCipher';
 import { logOperation } from '../services/activityStore';
 import { copyToClipboard } from '../utils/clipboard';
+import { executeBruteForceAttack } from '../services/bruteForceService';
+import { BruteForceAnalysis } from '../types/bruteForce';
 import { ShiftSelector } from '../components/common/ShiftSelector';
 import { AppView } from '../types/navigation';
 
@@ -25,6 +30,12 @@ export const DecryptPage: React.FC<DecryptPageProps> = ({ onNavigate, onToast })
   const [plaintext, setPlaintext] = useState('');
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  // Brute force inline analysis state
+  const [showBruteAnalysis, setShowBruteAnalysis] = useState(false);
+  const [bruteResult, setBruteResult] = useState<BruteForceAnalysis | null>(null);
+  const [showAllCandidates, setShowAllCandidates] = useState(false);
+  const [copiedShift, setCopiedShift] = useState<number | null>(null);
 
   // Check for pre-filled data from encrypt or history navigation
   useEffect(() => {
@@ -84,11 +95,33 @@ export const DecryptPage: React.FC<DecryptPageProps> = ({ onNavigate, onToast })
     setPlaintext('');
     setErrorMessage(null);
     setCopied(false);
+    setBruteResult(null);
+    setShowBruteAnalysis(false);
   };
 
-  const handleTryBruteForce = () => {
-    sessionStorage.setItem('secure_comm_bruteforce_prefill', ciphertext);
-    onNavigate('learn');
+  const handleRunBruteForce = () => {
+    if (!ciphertext.trim()) {
+      setErrorMessage('Please enter encrypted text first.');
+      return;
+    }
+    const result = executeBruteForceAttack(ciphertext);
+    setBruteResult(result);
+    setShowBruteAnalysis(true);
+  };
+
+  const handleApplyCandidate = (candidateShift: number, candidateText: string) => {
+    setShift(candidateShift);
+    setPlaintext(candidateText);
+    onToast?.('success', 'Shift Applied', `Applied shift ${candidateShift}`);
+  };
+
+  const handleCopyCandidate = async (shiftVal: number, text: string) => {
+    const success = await copyToClipboard(text);
+    if (success) {
+      setCopiedShift(shiftVal);
+      setTimeout(() => setCopiedShift(null), 2000);
+      onToast?.('success', 'Copied', `Shift ${shiftVal} translation copied.`);
+    }
   };
 
   return (
@@ -123,7 +156,7 @@ export const DecryptPage: React.FC<DecryptPageProps> = ({ onNavigate, onToast })
 
           <textarea
             id="decrypt-ciphertext-input"
-            rows={5}
+            rows={4}
             value={ciphertext}
             onChange={(e) => {
               setCiphertext(e.target.value);
@@ -143,7 +176,7 @@ export const DecryptPage: React.FC<DecryptPageProps> = ({ onNavigate, onToast })
         {/* Shift Selector Component */}
         <ShiftSelector value={shift} onChange={setShift} />
 
-        {/* Primary Action Button */}
+        {/* Primary Action Buttons */}
         <div className="flex items-center gap-3 pt-2">
           <button
             type="button"
@@ -203,21 +236,135 @@ export const DecryptPage: React.FC<DecryptPageProps> = ({ onNavigate, onToast })
               {plaintext}
             </div>
           </div>
-        ) : (
-          <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-neutral-400 dark:text-neutral-500">
-            <span>Enter text and click Decrypt to reveal the message.</span>
-            {ciphertext.length > 0 && (
-              <button
-                type="button"
-                onClick={handleTryBruteForce}
-                className="text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 font-medium cursor-pointer"
-              >
-                <span>Don't know the shift? Try Brute Force</span>
-                <ArrowRight className="w-3 h-3" />
-              </button>
-            )}
+        ) : null}
+
+        {/* Progressive Disclosure: Brute Force Assistant */}
+        <div className="pt-3 border-t border-neutral-100 dark:border-neutral-800/60 space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
+              <HelpCircle className="w-4 h-4 text-blue-500" />
+              <span>Don't know the secret shift?</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleRunBruteForce}
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline inline-flex items-center gap-1 cursor-pointer"
+            >
+              <Flame className="w-3.5 h-3.5 text-amber-500" />
+              <span>Analyze with Brute Force</span>
+            </button>
           </div>
-        )}
+
+          {/* Inline Brute Force Result Card */}
+          {showBruteAnalysis && bruteResult && (
+            <div className="p-4 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 space-y-3 animate-fadeIn">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Brute-force analysis (tested 25 keys)</span>
+                </span>
+                <span className="text-[11px] font-mono text-neutral-400">
+                  {bruteResult.executionTimeMs.toFixed(1)}ms
+                </span>
+              </div>
+
+              {bruteResult.topCandidate ? (
+                <div className="p-3 rounded-lg bg-white dark:bg-neutral-900 border border-blue-200 dark:border-blue-800/80 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300">
+                        Most Likely Match
+                      </span>
+                      <span className="text-xs font-mono text-neutral-500">
+                        Shift {bruteResult.topCandidate.shift}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleApplyCandidate(
+                          bruteResult.topCandidate!.shift,
+                          bruteResult.topCandidate!.candidatePlaintext
+                        )
+                      }
+                      className="text-xs px-2.5 py-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white font-medium cursor-pointer shadow-2xs"
+                    >
+                      Use this shift ({bruteResult.topCandidate.shift})
+                    </button>
+                  </div>
+
+                  <p className="text-sm font-mono text-neutral-900 dark:text-neutral-100 select-all">
+                    {bruteResult.topCandidate.candidatePlaintext}
+                  </p>
+                </div>
+              ) : (
+                <p className="text-xs text-neutral-500">
+                  No definitive dictionary matches found, but you can inspect all 26 variations below.
+                </p>
+              )}
+
+              {/* View all 26 shifts toggle */}
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowAllCandidates(!showAllCandidates)}
+                  className="text-xs text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 inline-flex items-center gap-1 cursor-pointer font-medium"
+                >
+                  <span>{showAllCandidates ? 'Hide' : 'View all 26 shift variations'}</span>
+                  {showAllCandidates ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                </button>
+
+                {showAllCandidates && (
+                  <div className="mt-2.5 max-h-56 overflow-y-auto space-y-1.5 pr-1 text-xs">
+                    {bruteResult.candidates.map((c) => {
+                      const isCopied = copiedShift === c.shift;
+                      return (
+                        <div
+                          key={c.shift}
+                          className="p-2 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200/70 dark:border-neutral-800/70 flex items-center justify-between gap-2"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className="w-12 shrink-0 font-mono text-[11px] text-neutral-400">
+                              Shift {c.shift}
+                            </span>
+                            <span className="font-mono text-neutral-900 dark:text-neutral-100 truncate">
+                              {c.candidatePlaintext}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleApplyCandidate(c.shift, c.candidatePlaintext)}
+                              className="px-2 py-0.5 rounded text-[11px] bg-neutral-100 dark:bg-neutral-800 hover:bg-blue-50 dark:hover:bg-blue-950 text-neutral-700 dark:text-neutral-300 hover:text-blue-600 cursor-pointer"
+                            >
+                              Apply
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleCopyCandidate(c.shift, c.candidatePlaintext)}
+                              className="p-1 rounded text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 cursor-pointer"
+                              title="Copy candidate"
+                            >
+                              {isCopied ? (
+                                <Check className="w-3 h-3 text-emerald-600" />
+                              ) : (
+                                <Copy className="w-3 h-3" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
