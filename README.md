@@ -26,7 +26,8 @@ A comprehensive suite of academic and technical documentation is maintained in t
 
 | Document | Description | Target Audience |
 | :--- | :--- | :--- |
-| 📄 [**Project Report**](docs/PROJECT_REPORT.md) | Complete academic project report with problem statement, objectives, mathematical foundations, and findings. | Academic Evaluators, Faculty |
+| 📄 [**Final Academic Report (Official Template)**](REPORT.md) | Complete academic project report strictly structured per university submission guidelines (Chapters 1-6, Mathematical Model, Testing, References). | Academic Evaluators, Faculty |
+| 📄 [**Extended Project Report**](docs/PROJECT_REPORT.md) | Extended project report with deep module breakdowns, threat modeling, and implementation logs. | Academic Evaluators, Faculty |
 | 🏛️ [**System Architecture**](docs/SYSTEM_ARCHITECTURE.md) | In-depth architecture diagrams, component trees, context providers, and data flows. | Software Engineers, Architects |
 | ✨ [**Feature Inventory**](docs/FEATURES.md) | Exhaustive specifications of the cipher engine, brute-force solver, auth, and App Lock. | Product Reviewers, Developers |
 | 🔌 [**API Documentation**](docs/API_DOCUMENTATION.md) | REST API endpoints, request/response JSON schemas, JWT authentication, and status codes. | API Integrators, QA Engineers |
