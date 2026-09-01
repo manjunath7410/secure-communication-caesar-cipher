@@ -75,13 +75,23 @@ export const TacticalHeader: React.FC<HeaderProps> = ({
         <button
           type="button"
           onClick={() => onViewChange('home')}
-          className="md:hidden flex items-center gap-2 text-left cursor-pointer focus:outline-none"
+          className="flex items-center gap-2 text-left cursor-pointer focus:outline-none"
         >
-          <Logo size="sm" variant="default" showWordmark={true} id="header-mobile-logo" />
+          {/* We only show the icon on mobile, and icon + wordmark on desktop. Oh wait, the user asked for [Shield Logo] Secure Communication. Let's just use Logo without wordmark and add our own text next to it for mobile. */}
+          <div className="md:hidden flex items-center gap-2">
+             <Logo size="sm" variant="default" showWordmark={false} id="header-mobile-logo" />
+             <h2 className="text-[15px] font-semibold text-neutral-900 dark:text-neutral-100">
+               Secure Communication
+             </h2>
+             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1" title="Protected" />
+          </div>
+          <div className="hidden md:block">
+            <Logo size="sm" variant="default" showWordmark={true} id="header-desktop-logo" />
+          </div>
         </button>
 
         {/* Desktop View Breadcrumb/Title */}
-        <div className="hidden md:flex items-center gap-2">
+        <div className="hidden md:flex items-center gap-2 ml-4 border-l border-neutral-200 dark:border-neutral-800 pl-4">
           <h2 className="text-base font-semibold text-neutral-800 dark:text-neutral-200">
             {getViewTitle(currentView)}
           </h2>
@@ -106,11 +116,11 @@ export const TacticalHeader: React.FC<HeaderProps> = ({
           </button>
         )}
 
-        {/* Quick Theme Toggle (Mobile) */}
+        {/* Quick Theme Toggle (Desktop Only) */}
         <button
           type="button"
           onClick={toggleTheme}
-          className="md:hidden p-2 rounded-lg text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+          className="hidden md:flex p-2 rounded-lg text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
           aria-label="Toggle light or dark theme"
         >
           {resolvedTheme === 'dark' ? (
@@ -120,29 +130,31 @@ export const TacticalHeader: React.FC<HeaderProps> = ({
           )}
         </button>
 
-        {/* Settings button (Mobile) */}
+        {/* Settings button (Desktop Only) */}
         <button
           type="button"
           onClick={() => onViewChange('settings')}
-          className="md:hidden p-2 rounded-lg text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+          className="hidden md:flex p-2 rounded-lg text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
           aria-label="Settings"
         >
           <Settings className="w-4 h-4" />
         </button>
 
-        {/* Account Button (Mobile) */}
+        {/* Account Button */}
         <button
           type="button"
           onClick={() => onViewChange(isAuthenticated ? 'account' : 'login')}
-          className="md:hidden p-1.5 rounded-lg text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
+          className="p-1.5 rounded-lg text-neutral-600 dark:text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
           aria-label="Account"
         >
           {isAuthenticated && user ? (
-            <div className="w-6 h-6 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-semibold">
+            <div className="w-7 h-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-semibold shadow-sm">
               {user.username.charAt(0).toUpperCase()}
             </div>
           ) : (
-            <User className="w-4 h-4" />
+            <div className="w-7 h-7 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center border border-neutral-200 dark:border-neutral-700">
+               <User className="w-4 h-4" />
+            </div>
           )}
         </button>
       </div>
