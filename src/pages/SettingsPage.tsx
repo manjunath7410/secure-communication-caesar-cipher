@@ -18,6 +18,7 @@ import {
 import { UserSettings, AppView } from '../types/navigation';
 import { useTheme } from '../context/ThemeContext';
 import { useOperationsLog } from '../hooks/useOperationsLog';
+import { useShift } from '../context/ShiftContext';
 import { ShiftSelector } from '../components/common/ShiftSelector';
 import { SecuritySettingsSection } from '../components/security/SecuritySettingsSection';
 
@@ -38,6 +39,7 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
 }) => {
   const { theme, setTheme } = useTheme();
   const { clearLog } = useOperationsLog();
+  const { shift: activeShift, setShift } = useShift();
 
   const handleClearData = () => {
     if (window.confirm('Clear all local session and message history?')) {
@@ -195,8 +197,11 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
           </div>
 
           <ShiftSelector
-            value={settings.defaultShift}
-            onChange={(val) => onUpdateSettings({ defaultShift: val })}
+            value={activeShift}
+            onChange={(val) => {
+              setShift(val);
+              onUpdateSettings({ defaultShift: val });
+            }}
           />
         </div>
 

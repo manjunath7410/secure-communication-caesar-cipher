@@ -17,6 +17,7 @@ import { copyToClipboard } from '../utils/clipboard';
 import { executeBruteForceAttack } from '../services/bruteForceService';
 import { BruteForceAnalysis } from '../types/bruteForce';
 import { ShiftSelector } from '../components/common/ShiftSelector';
+import { useShift } from '../context/ShiftContext';
 import { AppView } from '../types/navigation';
 
 interface DecryptPageProps {
@@ -26,7 +27,7 @@ interface DecryptPageProps {
 
 export const DecryptPage: React.FC<DecryptPageProps> = ({ onNavigate, onToast }) => {
   const [ciphertext, setCiphertext] = useState('');
-  const [shift, setShift] = useState(3);
+  const { shift, setShift } = useShift();
   const [plaintext, setPlaintext] = useState('');
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -41,15 +42,9 @@ export const DecryptPage: React.FC<DecryptPageProps> = ({ onNavigate, onToast })
   useEffect(() => {
     try {
       const prefill = sessionStorage.getItem('secure_comm_decrypt_prefill');
-      const shiftPrefill = sessionStorage.getItem('secure_comm_decrypt_shift');
       if (prefill) {
         setCiphertext(prefill);
         sessionStorage.removeItem('secure_comm_decrypt_prefill');
-      }
-      if (shiftPrefill) {
-        const parsed = parseInt(shiftPrefill, 10);
-        if (!isNaN(parsed)) setShift(parsed);
-        sessionStorage.removeItem('secure_comm_decrypt_shift');
       }
     } catch {
       // ignore

@@ -10,6 +10,7 @@ import {
 import { executeBruteForceAttack } from '../services/bruteForceService';
 import { BruteForceAnalysis } from '../types/bruteForce';
 import { copyToClipboard } from '../utils/clipboard';
+import { useShift } from '../context/ShiftContext';
 import { AppView } from '../types/navigation';
 
 interface LearnPageProps {
@@ -18,6 +19,7 @@ interface LearnPageProps {
 }
 
 export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onToast }) => {
+  const { shift: activeShift, setShift } = useShift();
   const [sampleText, setSampleText] = useState('DWWDFN DW GDZQ');
   const [bruteResult, setBruteResult] = useState<BruteForceAnalysis | null>(null);
   const [copiedShift, setCopiedShift] = useState<number | null>(null);
@@ -270,6 +272,22 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onToast }) => 
                           Likely match
                         </span>
                       )}
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShift(c.shift);
+                          onToast?.('success', 'Shift Updated', `Active Caesar shift set to ${c.shift}`);
+                        }}
+                        className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                          activeShift === c.shift
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-200 dark:hover:bg-neutral-700'
+                        }`}
+                        title="Set as active global shift"
+                      >
+                        {activeShift === c.shift ? 'Active' : 'Apply'}
+                      </button>
 
                       <button
                         type="button"

@@ -14,6 +14,7 @@ import { messageService } from '../services/messageService';
 import { authService } from '../services/authService';
 import { copyToClipboard } from '../utils/clipboard';
 import { ShiftSelector } from '../components/common/ShiftSelector';
+import { useShift } from '../context/ShiftContext';
 import { AppView } from '../types/navigation';
 
 interface EncryptPageProps {
@@ -23,7 +24,7 @@ interface EncryptPageProps {
 
 export const EncryptPage: React.FC<EncryptPageProps> = ({ onNavigate, onToast }) => {
   const [message, setMessage] = useState('');
-  const [shift, setShift] = useState(3);
+  const { shift, setShift } = useShift();
   const [ciphertext, setCiphertext] = useState('');
   const [copied, setCopied] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -86,7 +87,6 @@ export const EncryptPage: React.FC<EncryptPageProps> = ({ onNavigate, onToast })
 
   const handleOpenInDecrypt = () => {
     sessionStorage.setItem('secure_comm_decrypt_prefill', ciphertext);
-    sessionStorage.setItem('secure_comm_decrypt_shift', String(shift));
     onNavigate('decrypt');
   };
 

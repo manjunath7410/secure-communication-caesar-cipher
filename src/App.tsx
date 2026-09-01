@@ -12,6 +12,7 @@ import { ToastContainer } from './components/common/ToastContainer';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
 import { AppLockProvider } from './context/AppLockContext';
+import { ShiftProvider } from './context/ShiftContext';
 import { AppLockScreen } from './components/security/AppLockScreen';
 
 // Pages
@@ -193,8 +194,10 @@ export default function App() {
     <ThemeProvider>
       <AuthProvider>
         <AppLockProvider>
-          <AppLockScreen />
-          <AppContent />
+          <ShiftProvider>
+            <AppLockScreen />
+            <AppContent />
+          </ShiftProvider>
         </AppLockProvider>
       </AuthProvider>
     </ThemeProvider>

@@ -25,6 +25,7 @@ import {
   DEFAULT_RELAY_STATIONS,
   RelayStation,
 } from '../components/map/RelayStationMap';
+import { useShift } from '../context/ShiftContext';
 
 interface MapPageProps {
   onNavigate: (view: AppView, params?: any) => void;
@@ -32,6 +33,7 @@ interface MapPageProps {
 }
 
 export const MapPage: React.FC<MapPageProps> = ({ onNavigate, onToast }) => {
+  const { setShift } = useShift();
   const [selectedStation, setSelectedStation] = useState<RelayStation>(DEFAULT_RELAY_STATIONS[0]);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'ONLINE' | 'RELAYING' | 'STANDBY'>('ALL');
@@ -52,6 +54,7 @@ export const MapPage: React.FC<MapPageProps> = ({ onNavigate, onToast }) => {
   });
 
   const handleTransmitToStation = (station: RelayStation) => {
+    setShift(station.activeShift);
     onToast?.(
       'info',
       'Relay Shift Selected',

@@ -22,8 +22,10 @@ import {
   Check,
   Copy,
   AlertTriangle,
+  Globe,
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
+import { TacticalVectorMap } from './TacticalVectorMap';
 
 export interface RelayStation {
   id: string;
@@ -188,11 +190,14 @@ function MapCameraController({ target }: { target: { lat: number; lng: number } 
 
 export const RelayStationMap: React.FC<RelayStationMapProps> = ({
   apiKey = '',
-  mapId = 'DEMO_MAP_ID',
+  mapId,
   selectedStation,
   onSelectStation,
   onTransmitToStation,
 }) => {
+  const hasValidGoogleKey = typeof apiKey === 'string' && apiKey.trim().length > 15 && !apiKey.includes('PLACEHOLDER');
+  const [mapMode, setMapMode] = useState<'tactical' | 'google'>(hasValidGoogleKey ? 'google' : 'tactical');
+  const [hasLoadError, setHasLoadError] = useState(false);
   const { resolvedTheme } = useTheme();
   const [activeStationInfo, setActiveStationInfo] = useState<RelayStation | null>(null);
   const [copiedCoords, setCopiedCoords] = useState<string | null>(null);
@@ -231,21 +236,53 @@ export const RelayStationMap: React.FC<RelayStationMapProps> = ({
     return { background: '#64748B', glyphColor: '#FFFFFF', borderColor: '#475569' };
   };
 
+  // If tactical radar mode is active, or if no valid API key exists, or if Google Maps failed to load
+  if (mapMode === 'tactical' || !hasValidGoogleKey || hasLoadError) {
+    return (
+      <div className="space-y-2">
+        <TacticalVectorMap
+          stations={DEFAULT_RELAY_STATIONS}
+          selectedStation={selectedStation}
+          onSelectStation={onSelectStation}
+          onTransmitToStation={onTransmitToStation}
+        />
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-neutral-500">
+          <span className="flex items-center gap-1.5">
+            <Radio className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
+            <span>Military Tactical Vector Radar • {DEFAULT_RELAY_STATIONS.length} Active Cryptographic Nodes</span>
+          </span>
+          {hasValidGoogleKey && !hasLoadError && (
+            <button
+              type="button"
+              onClick={() => setMapMode('google')}
+              className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline cursor-pointer flex items-center gap-1"
+            >
+              <Globe className="w-3.5 h-3.5" />
+              <span>Switch to Google Maps Satellite View</span>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="relative w-full h-[520px] sm:h-[600px] rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 shadow-xs bg-neutral-100 dark:bg-neutral-900">
-      <APIProvider apiKey={apiKey}>
+      <APIProvider
+        apiKey={apiKey}
+        onError={() => setHasLoadError(true)}
+      >
         <Map
           id="secure-relay-main-map"
           defaultCenter={defaultCenter}
           defaultZoom={2.5}
           minZoom={2}
           maxZoom={18}
-          mapId={mapId || 'DEMO_MAP_ID'}
+          mapId={mapId || undefined}
           mapTypeId={mapType}
           gestureHandling="greedy"
           disableDefaultUI={false}
           colorScheme={resolvedTheme === 'dark' ? 'DARK' : 'LIGHT'}
-          internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
           className="w-full h-full"
         >
           <MapCameraController
@@ -375,22 +412,16 @@ export const RelayStationMap: React.FC<RelayStationMapProps> = ({
             </button>
           ))}
         </div>
-      </div>
 
-      {/* Demo Key Notice Badge */}
-      {!apiKey && (
-        <div className="absolute bottom-3 left-3 z-10 max-w-sm pointer-events-auto">
-          <div className="p-2.5 rounded-xl bg-neutral-900/90 text-white backdrop-blur-md border border-neutral-700 shadow-md text-[11px] flex items-start gap-2">
-            <Shield className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-            <div>
-              <p className="font-semibold text-neutral-100">Google Maps Platform Ready</p>
-              <p className="text-neutral-300 text-[10px] leading-tight">
-                To render live tiles with your quota, add <code className="text-blue-300">VITE_GOOGLE_MAPS_API_KEY</code> or mint a free Maps Demo Key.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+        <button
+          type="button"
+          onClick={() => setMapMode('tactical')}
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-neutral-900/90 text-white hover:bg-neutral-800 text-[11px] font-medium shadow-sm transition-colors cursor-pointer"
+        >
+          <Layers className="w-3.5 h-3.5 text-blue-400" />
+          <span>Tactical Radar View</span>
+        </button>
+      </div>
     </div>
   );
 };

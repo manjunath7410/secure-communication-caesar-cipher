@@ -13,6 +13,7 @@ import { runBruteForceTests } from './bruteForce.test';
 import { runPWATests } from './pwa.test';
 import { runIntegrationTests } from './integration.test';
 import { runAndroidQATests } from './androidQA.test';
+import { runShiftSyncTests } from './shiftSync.test';
 import { defaultApiClient } from '../services/apiClient';
 
 async function main() {
@@ -184,6 +185,19 @@ async function main() {
     } else {
       totalFailed++;
       console.log(`    ✗ [${t.category}] ${t.name} -> FAILED (${t.error})`);
+    }
+  }
+
+  // Phase 16: Caesar Shift State Synchronization Tests
+  console.log('\n--- EXECUTING PHASE 16: CAESAR SHIFT SYNCHRONIZATION TESTS ---');
+  const shiftSyncResults = runShiftSyncTests();
+  for (const t of shiftSyncResults) {
+    if (t.passed) {
+      totalPassed++;
+      console.log(`    ✓ [${t.category}] ${t.testName}`);
+    } else {
+      totalFailed++;
+      console.log(`    ✗ [${t.category}] ${t.testName} -> FAILED (${t.details})`);
     }
   }
 

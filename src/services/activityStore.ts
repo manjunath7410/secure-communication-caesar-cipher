@@ -138,11 +138,18 @@ export function getRecentActivities(): OperationActivity[] {
   return memoryStore.activities;
 }
 
+const PRIMARY_ACTIVE_SHIFT_KEY = 'secure_comm_active_shift';
+
 /**
  * Retrieves the currently selected global shift
  */
 export function getSelectedShift(): number {
   if (typeof window !== 'undefined' && window.localStorage) {
+    const active = localStorage.getItem(PRIMARY_ACTIVE_SHIFT_KEY);
+    if (active !== null) {
+      const parsed = parseInt(active, 10);
+      if (!isNaN(parsed) && parsed >= 0 && parsed <= 25) return parsed;
+    }
     const saved = safeLocalStorageGet<number>(STORAGE_KEY_SELECTED_SHIFT, memoryStore.selectedShift);
     return typeof saved === 'number' && saved >= 0 && saved <= 25 ? saved : 3;
   }
@@ -156,6 +163,11 @@ export function setSelectedShift(shift: number): void {
   const normalized = ((shift % 26) + 26) % 26;
   memoryStore.selectedShift = normalized;
   safeLocalStorageSet(STORAGE_KEY_SELECTED_SHIFT, normalized);
+  if (typeof window !== 'undefined' && window.localStorage) {
+    try {
+      localStorage.setItem(PRIMARY_ACTIVE_SHIFT_KEY, String(normalized));
+    } catch {}
+  }
   notifyListeners();
 }
 
