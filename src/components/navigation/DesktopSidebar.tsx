@@ -12,6 +12,7 @@ import {
   Moon,
   Laptop,
   LogOut,
+  Radio,
 } from 'lucide-react';
 import { AppView } from '../../types/navigation';
 import { useAuth } from '../../hooks/useAuth';
@@ -21,11 +22,13 @@ import { Logo } from '../branding/Logo';
 interface DesktopSidebarProps {
   currentView: AppView;
   onViewChange: (view: AppView) => void;
+  onOpenVoice?: () => void;
 }
 
 export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
   currentView,
   onViewChange,
+  onOpenVoice,
 }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const { theme, resolvedTheme, setTheme } = useTheme();
@@ -96,6 +99,28 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
             </button>
           );
         })}
+
+        {onOpenVoice && (
+          <div className="pt-2">
+            <button
+              type="button"
+              id="sidebar-nav-voice"
+              onClick={onOpenVoice}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-semibold bg-gradient-to-r from-blue-600/10 to-indigo-600/10 hover:from-blue-600/20 hover:to-indigo-600/20 border border-blue-200/80 dark:border-blue-800/80 text-blue-700 dark:text-blue-300 transition-all cursor-pointer shadow-2xs group"
+            >
+              <div className="flex items-center gap-2.5">
+                <div className="relative">
+                  <Radio className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                </div>
+                <span>Voice Copilot</span>
+              </div>
+              <span className="text-[10px] font-mono uppercase px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-bold">
+                Live
+              </span>
+            </button>
+          </div>
+        )}
       </nav>
 
       {/* Footer Area: Theme Toggle, Settings & Account */}

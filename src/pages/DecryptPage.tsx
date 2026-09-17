@@ -17,6 +17,7 @@ import { copyToClipboard } from '../utils/clipboard';
 import { executeBruteForceAttack } from '../services/bruteForceService';
 import { BruteForceAnalysis } from '../types/bruteForce';
 import { ShiftSelector } from '../components/common/ShiftSelector';
+import { MicTranscribeButton } from '../components/audio/MicTranscribeButton';
 import { useShift } from '../context/ShiftContext';
 import { AppView } from '../types/navigation';
 
@@ -142,11 +143,21 @@ export const DecryptPage: React.FC<DecryptPageProps> = ({ onNavigate, onToast })
             >
               Encrypted text
             </label>
-            {ciphertext.length > 0 && (
-              <span className="text-xs text-neutral-400">
-                {ciphertext.length} character{ciphertext.length === 1 ? '' : 's'}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              <MicTranscribeButton
+                size="sm"
+                targetLabel="Ciphertext Payload"
+                onTranscribed={(spokenText) => {
+                  setCiphertext((prev) => (prev ? `${prev} ${spokenText}` : spokenText));
+                  if (errorMessage) setErrorMessage(null);
+                }}
+              />
+              {ciphertext.length > 0 && (
+                <span className="text-xs text-neutral-400">
+                  {ciphertext.length} character{ciphertext.length === 1 ? '' : 's'}
+                </span>
+              )}
+            </div>
           </div>
 
           <textarea

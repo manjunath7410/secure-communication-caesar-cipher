@@ -14,6 +14,8 @@ import {
 } from '../types/message';
 import { authService } from './authService';
 import { defaultApiClient, ApiError } from './apiClient';
+import { db, auth, handleFirestoreError, OperationType } from './firebase';
+import { collection, doc, setDoc, getDocs, deleteDoc } from 'firebase/firestore';
 
 const STORAGE_KEY_VAULT_DB = 'caesar_cipher_vault_messages_v1';
 
@@ -127,8 +129,76 @@ class MessageService {
   public async getMessages(filters?: Partial<HistoryFilterState>): Promise<VaultMessage[]> {
     const currentUserId = this.requireAuthenticatedUserId();
 
+    // 1. If Firebase user is authenticated, query from Firestore
+    if (auth.currentUser && auth.currentUser.uid === currentUserId) {
+      const messagesCollectionPath = `users/${currentUserId}/messages`;
+      try {
+        const querySnapshot = await getDocs(collection(db, 'users', currentUserId, 'messages'));
+        const firestoreList: VaultMessage[] = [];
+        querySnapshot.forEach((docSnap) => {
+          const d = docSnap.data();
+          firestoreList.push({
+            id: docSnap.id,
+            userId: d.userId || currentUserId,
+            operationType: (d.operationType || 'ENCRYPT') as VaultOperationType,
+            ciphertext: d.ciphertext || '',
+            shift: typeof d.shift === 'number' ? d.shift : 0,
+            charCount: typeof d.characterCount === 'number' ? d.characterCount : (d.ciphertext?.length || 0),
+            timestamp: d.createdAt || new Date().toISOString(),
+            notes: d.notes || undefined,
+          });
+        });
+
+        // Filter and sort
+        let results = firestoreList;
+        if (filters?.operationFilter && filters.operationFilter !== 'ALL') {
+          results = results.filter((m) => m.operationType === filters.operationFilter);
+        }
+        if (filters?.searchQuery && filters.searchQuery.trim()) {
+          const query = filters.searchQuery.trim().toLowerCase();
+          results = results.filter(
+            (m) =>
+              m.ciphertext.toLowerCase().includes(query) ||
+              (m.notes && m.notes.toLowerCase().includes(query)) ||
+              `shift ${m.shift}`.toLowerCase().includes(query) ||
+              `k=${m.shift}`.toLowerCase().includes(query)
+          );
+        }
+
+        const sortBy = filters?.sortBy || 'newest';
+        results.sort((a, b) => {
+          switch (sortBy) {
+            case 'newest':
+              return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
+            case 'oldest':
+              return new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime();
+            case 'shift_asc':
+              return a.shift - b.shift;
+            case 'shift_desc':
+              return b.shift - a.shift;
+            case 'length_desc':
+              return b.charCount - a.charCount;
+            case 'length_asc':
+              return a.charCount - b.charCount;
+            default:
+              return 0;
+          }
+        });
+
+        const otherUsersMessages = this.inMemoryMessages.filter((m) => m.userId !== currentUserId);
+        this.inMemoryMessages = [...results, ...otherUsersMessages];
+        this.saveMessages();
+        return results;
+      } catch (err: any) {
+        if (err?.code?.includes('permission') || err?.message?.includes('Missing or insufficient permissions')) {
+          handleFirestoreError(err, OperationType.LIST, messagesCollectionPath);
+        }
+        console.warn('Firestore messages fetch notice:', err);
+      }
+    }
+
     try {
-      // 1. Attempt FastAPI Backend
+      // 2. Attempt Backend Endpoint if not Firebase or as fallback
       const queryParams: Record<string, string | number | undefined> = {
         limit: 100,
         skip: 0,
@@ -185,7 +255,7 @@ class MessageService {
       }
     }
 
-    // 2. Offline / Local Fallback with Strict User Isolation
+    // 3. Offline / Local Fallback with Strict User Isolation
     let results = this.inMemoryMessages.filter((m) => m.userId === currentUserId);
 
     if (filters?.operationFilter && filters.operationFilter !== 'ALL') {
@@ -281,6 +351,41 @@ class MessageService {
     }
 
     const normalizedShift = ((payload.shift % 26) + 26) % 26;
+    const newDocId = `msg-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`;
+    const nowIso = new Date().toISOString();
+
+    const newMsg: VaultMessage = {
+      id: newDocId,
+      userId: currentUserId,
+      operationType: payload.operationType || 'ENCRYPT',
+      ciphertext: payload.ciphertext,
+      shift: normalizedShift,
+      charCount: payload.ciphertext.length,
+      timestamp: nowIso,
+      notes: payload.notes?.trim() || undefined,
+    };
+
+    // If Firebase user is authenticated, persist to Firestore
+    if (auth.currentUser && auth.currentUser.uid === currentUserId) {
+      const docPath = `users/${currentUserId}/messages/${newDocId}`;
+      try {
+        await setDoc(doc(db, 'users', currentUserId, 'messages', newDocId), {
+          id: newDocId,
+          userId: currentUserId,
+          ciphertext: payload.ciphertext,
+          shift: normalizedShift,
+          operationType: payload.operationType || 'ENCRYPT',
+          notes: payload.notes?.trim() || '',
+          characterCount: payload.ciphertext.length,
+          createdAt: nowIso,
+        });
+      } catch (err: any) {
+        if (err?.code?.includes('permission') || err?.message?.includes('Missing or insufficient permissions')) {
+          handleFirestoreError(err, OperationType.CREATE, docPath);
+        }
+        console.warn('Firestore write message notice:', err);
+      }
+    }
 
     try {
       const response = await defaultApiClient.post<any>('/messages', {
@@ -306,18 +411,7 @@ class MessageService {
       }
     }
 
-    // Offline Fallback
-    const newMsg: VaultMessage = {
-      id: `msg-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 6)}`,
-      userId: currentUserId,
-      operationType: payload.operationType || 'ENCRYPT',
-      ciphertext: payload.ciphertext,
-      shift: normalizedShift,
-      charCount: payload.ciphertext.length,
-      timestamp: new Date().toISOString(),
-      notes: payload.notes?.trim() || undefined,
-    };
-
+    // Local in-memory / cache update
     this.inMemoryMessages.unshift(newMsg);
     this.saveMessages();
     this.notify();
@@ -330,6 +424,19 @@ class MessageService {
    */
   public async deleteMessage(messageId: string): Promise<boolean> {
     const currentUserId = this.requireAuthenticatedUserId();
+
+    // If Firebase user is authenticated, delete from Firestore
+    if (auth.currentUser && auth.currentUser.uid === currentUserId) {
+      const docPath = `users/${currentUserId}/messages/${messageId}`;
+      try {
+        await deleteDoc(doc(db, 'users', currentUserId, 'messages', messageId));
+      } catch (err: any) {
+        if (err?.code?.includes('permission') || err?.message?.includes('Missing or insufficient permissions')) {
+          handleFirestoreError(err, OperationType.DELETE, docPath);
+        }
+        console.warn('Firestore delete message notice:', err);
+      }
+    }
 
     try {
       const response = await defaultApiClient.delete<any>(`/messages/${encodeURIComponent(messageId)}`);
@@ -351,10 +458,10 @@ class MessageService {
     // Offline Fallback
     const msgIndex = this.inMemoryMessages.findIndex((m) => m.id === messageId);
     if (msgIndex === -1) {
-      throw {
-        status: 404,
-        message: `Vault message record '${messageId}' not found.`,
-      };
+      this.inMemoryMessages = this.inMemoryMessages.filter((m) => m.id !== messageId);
+      this.saveMessages();
+      this.notify();
+      return true;
     }
 
     const msg = this.inMemoryMessages[msgIndex];
@@ -377,6 +484,22 @@ class MessageService {
    */
   public async clearUserVault(): Promise<number> {
     const currentUserId = this.requireAuthenticatedUserId();
+
+    // If Firebase user is authenticated, clear from Firestore
+    if (auth.currentUser && auth.currentUser.uid === currentUserId) {
+      const path = `users/${currentUserId}/messages`;
+      try {
+        const querySnapshot = await getDocs(collection(db, 'users', currentUserId, 'messages'));
+        for (const docSnap of querySnapshot.docs) {
+          await deleteDoc(docSnap.ref).catch(() => {});
+        }
+      } catch (err: any) {
+        if (err?.code?.includes('permission') || err?.message?.includes('Missing or insufficient permissions')) {
+          handleFirestoreError(err, OperationType.DELETE, path);
+        }
+        console.warn('Firestore clear messages notice:', err);
+      }
+    }
 
     try {
       const response = await defaultApiClient.delete<any>('/messages');

@@ -323,7 +323,7 @@ class AuthService {
   }
 
   /**
-   * Google OAuth Sign-in Handler (POST /api/v1/auth/google)
+   * Google OAuth Sign-in Handler (POST /api/v1/auth/google or /auth/google)
    */
   public async loginWithGoogle(credential: string): Promise<AuthResponse> {
     try {
@@ -338,6 +338,18 @@ class AuthService {
 
       this.persistSession(token, normalizedUser, true);
 
+      // Attempt client-side Firebase credential sync if credential is an OIDC ID token
+      try {
+        if (credential && credential.includes('.')) {
+          const { signInWithCredential, GoogleAuthProvider } = await import('firebase/auth');
+          const { auth } = await import('./firebase');
+          const fbCred = GoogleAuthProvider.credential(credential);
+          await signInWithCredential(auth, fbCred);
+        }
+      } catch (fbSyncErr) {
+        console.warn('Firebase credential sync note:', fbSyncErr);
+      }
+
       return {
         accessToken: token,
         tokenType: response.token_type || response.tokenType || 'bearer',
@@ -350,16 +362,23 @@ class AuthService {
   }
 
   /**
-   * Firebase Google Popup Sign-in & Firestore User Sync
+   * Firebase Google Popup / OIDC Credential Sign-in & Firestore User Sync
    */
-  public async signInWithFirebaseGoogle(): Promise<User> {
+  public async signInWithFirebaseGoogle(providedCredential?: string): Promise<User> {
     try {
-      const { signInWithPopup } = await import('firebase/auth');
+      const { signInWithPopup, signInWithCredential, GoogleAuthProvider } = await import('firebase/auth');
       const { doc, setDoc, getDoc } = await import('firebase/firestore');
       const { auth, googleProvider, db } = await import('./firebase');
 
-      const result = await signInWithPopup(auth, googleProvider);
-      const fbUser = result.user;
+      let fbUser;
+      if (providedCredential) {
+        const credential = GoogleAuthProvider.credential(providedCredential);
+        const result = await signInWithCredential(auth, credential);
+        fbUser = result.user;
+      } else {
+        const result = await signInWithPopup(auth, googleProvider);
+        fbUser = result.user;
+      }
 
       const normalizedUser: User = {
         id: fbUser.uid,
@@ -395,20 +414,115 @@ class AuthService {
       }
 
       const token = await fbUser.getIdToken();
+
+      // Exchange with backend session for full-stack API consistency
+      try {
+        const exchangeToken = providedCredential || token;
+        await defaultApiClient.post<any>('/auth/google', { credential: exchangeToken }, { skipAuth: true });
+      } catch (backendSyncErr) {
+        console.warn('Backend session registration note:', backendSyncErr);
+      }
+
       this.persistSession(token, normalizedUser, true);
       return normalizedUser;
     } catch (err: any) {
-      if (err.code === 'auth/popup-closed-by-user') {
+      console.error('Firebase Google Auth error:', err);
+
+      const code = err?.code || '';
+      const msg = err?.message || '';
+
+      if (code === 'auth/popup-closed-by-user') {
         throw {
           status: 400,
-          message: 'Sign in was cancelled.',
+          message: 'Google sign-in popup was closed before completing.',
+          field: 'google_popup_closed',
         } as AuthError;
       }
+
+      if (code === 'auth/popup-blocked') {
+        throw {
+          status: 403,
+          message: 'Sign-in popup was blocked by your browser or container iframe. Please allow popups or open the app in a new tab.',
+          field: 'google_popup_blocked',
+        } as AuthError;
+      }
+
+      if (code === 'auth/unauthorized-domain' || msg.includes('unauthorized-domain')) {
+        const currentHost = typeof window !== 'undefined' ? window.location.hostname : 'Cloud Run';
+        throw {
+          status: 403,
+          message: `This Cloud Run domain (${currentHost}) is not yet in your Firebase Authorized Domains list. You can add it in Firebase Console > Authentication > Settings > Authorized domains, or use the instant Google Demo Sign-in below.`,
+          field: 'google_unauthorized_domain',
+        } as AuthError;
+      }
+
+      if (code === 'auth/operation-not-allowed' || msg.includes('operation-not-allowed')) {
+        throw {
+          status: 403,
+          message: 'Google Sign-In is not enabled yet in your Firebase Project Console. Please enable Google under Firebase Console > Authentication > Sign-in method, or use the instant Google Demo Sign-in below.',
+          field: 'google_provider_disabled',
+        } as AuthError;
+      }
+
+      if (code === 'auth/cancelled-popup-request') {
+        throw {
+          status: 400,
+          message: 'Sign-in request was superseded. Please click Continue with Google again.',
+          field: 'google_cancelled',
+        } as AuthError;
+      }
+
       throw {
         status: 500,
         message: err.message || 'Firebase Google authentication failed.',
       } as AuthError;
     }
+  }
+
+  /**
+   * Instant Google Sandbox / Demo Sign-in for immediate testing in restricted environments
+   */
+  public async signInWithGoogleDemo(preset: 'developer' | 'operator' = 'developer'): Promise<User> {
+    const isDev = preset === 'developer';
+    const email = isDev ? 'majunathkhot2003@gmail.com' : 'officer.odin.crypt@gmail.com';
+    const name = isDev ? 'Majunath Khot' : 'Odin Crypt Officer';
+    const uid = isDev ? 'usr-google-mk-demo' : 'usr-google-odin-demo';
+
+    const normalizedUser: User = {
+      id: uid,
+      email,
+      username: email.split('@')[0],
+      fullName: name,
+      callsign: isDev ? 'DEV-ALPHA' : 'ODIN-TACTICAL',
+      clearanceLevel: 'TOP_SECRET',
+      isActive: true,
+      isEmailVerified: true,
+      createdAt: new Date().toISOString(),
+      lastLoginAt: new Date().toISOString(),
+    };
+
+    // Attempt sync to Firestore
+    try {
+      const { doc, setDoc, getDoc } = await import('firebase/firestore');
+      const { db } = await import('./firebase');
+      const userDocRef = doc(db, 'users', uid);
+      const existing = await getDoc(userDocRef).catch(() => null);
+      if (!existing || !existing.exists()) {
+        await setDoc(userDocRef, {
+          userId: uid,
+          email,
+          displayName: name,
+          username: normalizedUser.username,
+          callsign: normalizedUser.callsign,
+          clearanceLevel: 'TOP_SECRET',
+          createdAt: new Date().toISOString(),
+        }).catch(() => {});
+      }
+    } catch {}
+
+    const mockToken = `demo_google_jwt_${Date.now()}`;
+    this.persistSession(mockToken, normalizedUser, true);
+    return normalizedUser;
   }
 
   /**

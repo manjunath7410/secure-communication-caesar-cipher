@@ -3,6 +3,9 @@
  * @description Local state and storage manager for tracking Caesar Cipher operations, statistics, and recent activity logs.
  */
 
+import { auth, db } from './firebase';
+import { doc, setDoc } from 'firebase/firestore';
+
 export type OperationType = 'ENCRYPT' | 'DECRYPT';
 
 export interface OperationActivity {
@@ -217,6 +220,23 @@ export function logOperation(
   safeLocalStorageSet(STORAGE_KEY_ACTIVITIES, updatedActivities);
 
   notifyListeners();
+
+  // If Firebase user is authenticated, persist activity to Firestore
+  if (auth.currentUser) {
+    const uid = auth.currentUser.uid;
+    const actDoc = doc(db, 'users', uid, 'activities', newActivity.id);
+    setDoc(actDoc, {
+      id: newActivity.id,
+      userId: uid,
+      type: newActivity.type,
+      details: (newActivity.notes || `${newActivity.type} shift=${newActivity.shift}`).slice(0, 500),
+      shift: newActivity.shift,
+      timestamp: new Date(newActivity.timestamp).toISOString(),
+    }).catch((err) => {
+      console.warn('Firestore activity log notice:', err);
+    });
+  }
+
   return newActivity;
 }
 

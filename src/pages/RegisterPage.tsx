@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   User as UserIcon,
   Mail,
@@ -9,6 +9,8 @@ import {
   Loader2,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
+  ExternalLink,
   RotateCcw,
   Sparkles,
 } from 'lucide-react';
@@ -23,7 +25,19 @@ interface RegisterPageProps {
 }
 
 export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onToast }) => {
-  const { register, resendVerification, verifyEmail } = useAuth();
+  const {
+    register,
+    resendVerification,
+    verifyEmail,
+    signInWithFirebaseGoogle,
+    signInWithGoogleDemo,
+    isAuthenticated,
+    user,
+    renderGoogleButton,
+    promptGoogleOneTap,
+    isGsiReady,
+    gsiError,
+  } = useAuth();
 
   // Form State
   const [fullName, setFullName] = useState('');
@@ -40,6 +54,99 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onToast 
   const [confirmError, setConfirmError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [googleIssue, setGoogleIssue] = useState<{
+    code?: string;
+    message: string;
+    canOpenNewTab?: boolean;
+  } | null>(null);
+
+  const gsiContainerRef = useRef<HTMLDivElement>(null);
+
+  // Auto-navigate when user is logged in
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      setIsSuccess(true);
+      const timer = setTimeout(() => {
+        onNavigate('home');
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [isAuthenticated, user, onNavigate]);
+
+  // Render Google Identity Services Button when GSI client is ready
+  useEffect(() => {
+    if (isGsiReady && gsiContainerRef.current && renderGoogleButton) {
+      renderGoogleButton(gsiContainerRef.current);
+    }
+  }, [isGsiReady, renderGoogleButton]);
+
+  // Display GSI error notice if present
+  useEffect(() => {
+    if (gsiError) {
+      setGoogleIssue({
+        code: 'gsi_error',
+        message: gsiError,
+        canOpenNewTab: true,
+      });
+    }
+  }, [gsiError]);
+
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    setErrorMessage(null);
+    setGoogleIssue(null);
+
+    // If GSI One Tap is supported, prompt it
+    if (isGsiReady && promptGoogleOneTap) {
+      try {
+        promptGoogleOneTap();
+      } catch {}
+    }
+
+    try {
+      const loggedUser = await signInWithFirebaseGoogle();
+      setIsSuccess(true);
+      onToast?.('success', 'Google Account Connected', `Welcome, ${loggedUser.fullName || loggedUser.username}!`);
+      setTimeout(() => {
+        onNavigate('home');
+      }, 350);
+    } catch (err: any) {
+      const isCancelled = err?.message?.includes('cancelled') || err?.field === 'google_popup_closed';
+      if (!isCancelled) {
+        const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
+        const msg = err.message || 'Firebase Google authentication encountered an issue.';
+        setErrorMessage(msg);
+        setGoogleIssue({
+          code: err.field,
+          message: msg,
+          canOpenNewTab: isInIframe || err.field === 'google_popup_blocked',
+        });
+        onToast?.('error', 'Google Sign-In Notice', msg);
+      }
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleDemoSignIn = async (preset: 'developer' | 'operator' = 'developer') => {
+    setIsGoogleLoading(true);
+    setErrorMessage(null);
+    setGoogleIssue(null);
+
+    try {
+      const loggedUser = await signInWithGoogleDemo(preset);
+      setIsSuccess(true);
+      onToast?.('success', 'Google Account Connected', `Signed in as ${loggedUser.fullName} (${loggedUser.email}).`);
+      setTimeout(() => {
+        onNavigate('home');
+      }, 350);
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to initialize Google sandbox session.');
+    } finally {
+      setIsGoogleLoading(false);
+    }
+  };
 
   // Verification Step State
   const [isAwaitingVerification, setIsAwaitingVerification] = useState(false);
@@ -461,6 +568,92 @@ export const RegisterPage: React.FC<RegisterPageProps> = ({ onNavigate, onToast 
               )}
             </button>
           </form>
+        )}
+
+        {/* Continue with Google */}
+        {!isAwaitingVerification && (
+          <>
+            <div className="relative flex items-center justify-center pt-1">
+              <div className="w-full border-t border-neutral-200 dark:border-neutral-800" />
+              <span className="absolute px-3 bg-white dark:bg-neutral-900 text-[11px] uppercase tracking-wider text-neutral-400 font-medium">
+                or sign up with
+              </span>
+            </div>
+
+            {/* Google Identity Services Rendered Container */}
+            <div
+              id="gsi-register-container"
+              ref={gsiContainerRef}
+              className="w-full flex justify-center empty:hidden"
+            />
+
+            <button
+              type="button"
+              id="register-google-btn"
+              onClick={handleGoogleSignIn}
+              disabled={isGoogleLoading}
+              className="w-full h-11 rounded-xl bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-900 active:scale-[0.98] text-neutral-700 dark:text-neutral-200 font-medium text-sm flex items-center justify-center gap-3 transition-all cursor-pointer shadow-2xs"
+            >
+              {isGoogleLoading ? (
+                <Loader2 className="w-4 h-4 animate-spin text-neutral-500" />
+              ) : (
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path
+                    fill="#4285F4"
+                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                  />
+                  <path
+                    fill="#34A853"
+                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                  />
+                  <path
+                    fill="#FBBC05"
+                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"
+                  />
+                  <path
+                    fill="#EA4335"
+                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
+                  />
+                </svg>
+              )}
+              <span>Continue with Google</span>
+            </button>
+
+            {/* Diagnostic & fallback card if Google Auth triggers sandbox / domain restrictions */}
+            {googleIssue && (
+              <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/60 space-y-2.5 text-xs text-amber-900 dark:text-amber-200">
+                <div className="flex items-start gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="font-semibold text-neutral-900 dark:text-neutral-100">Google Authentication Status</p>
+                    <p className="text-[11px] leading-relaxed text-neutral-700 dark:text-neutral-300">
+                      {googleIssue.message}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => handleGoogleDemoSignIn('developer')}
+                    className="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Instant Google Demo Account</span>
+                  </button>
+                  {googleIssue.canOpenNewTab && (
+                    <button
+                      type="button"
+                      onClick={() => window.open(window.location.href, '_blank')}
+                      className="px-3 py-1.5 rounded-lg bg-white dark:bg-neutral-800 border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-50 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 font-medium text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Open in New Tab</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

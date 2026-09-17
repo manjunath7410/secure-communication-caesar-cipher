@@ -3,6 +3,7 @@ export type AppView =
   | 'landing'
   | 'encrypt'
   | 'decrypt'
+  | 'voice'
   | 'history'
   | 'map'
   | 'learn'

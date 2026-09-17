@@ -1,6 +1,6 @@
 {
   "name": "Secure Military Communication Using Caesar Cipher",
   "description": "An educational cryptography demonstration platform showcasing classical Caesar Cipher encryption, decryption, brute-force vulnerability analysis, and message management.",
-  "requestFramePermissions": [],
+  "requestFramePermissions": ["microphone"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

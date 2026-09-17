@@ -6,6 +6,7 @@ import {
   WifiOff,
   Sun,
   Moon,
+  Radio,
 } from 'lucide-react';
 import { AppView } from '../../types/navigation';
 import { useAuth } from '../../hooks/useAuth';
@@ -18,11 +19,13 @@ interface HeaderProps {
   onViewChange: (view: AppView) => void;
   onRefresh?: () => void;
   isLoading?: boolean;
+  onOpenVoice?: () => void;
 }
 
 export const TacticalHeader: React.FC<HeaderProps> = ({
   currentView,
   onViewChange,
+  onOpenVoice,
 }) => {
   const { user, isAuthenticated } = useAuth();
   const { isOnline, isSimulatedOffline, toggleSimulatedOffline } = usePWA();
@@ -113,6 +116,21 @@ export const TacticalHeader: React.FC<HeaderProps> = ({
           >
             <WifiOff className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Offline</span>
+          </button>
+        )}
+
+        {/* Live Voice Copilot Launcher */}
+        {onOpenVoice && (
+          <button
+            type="button"
+            onClick={onOpenVoice}
+            className="relative p-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200/60 dark:border-blue-800/60 transition-colors cursor-pointer"
+            title="Open Live Voice Copilot (gemini-3.8-live)"
+            aria-label="Live Voice Copilot"
+          >
+            <Radio className="w-4 h-4" />
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-emerald-500" />
           </button>
         )}
 

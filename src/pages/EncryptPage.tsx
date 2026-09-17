@@ -14,6 +14,7 @@ import { messageService } from '../services/messageService';
 import { authService } from '../services/authService';
 import { copyToClipboard } from '../utils/clipboard';
 import { ShiftSelector } from '../components/common/ShiftSelector';
+import { MicTranscribeButton } from '../components/audio/MicTranscribeButton';
 import { useShift } from '../context/ShiftContext';
 import { AppView } from '../types/navigation';
 
@@ -113,11 +114,21 @@ export const EncryptPage: React.FC<EncryptPageProps> = ({ onNavigate, onToast })
             >
               Your message
             </label>
-            {message.length > 0 && (
-              <span className="text-xs text-neutral-400">
-                {message.length} character{message.length === 1 ? '' : 's'}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              <MicTranscribeButton
+                size="sm"
+                targetLabel="Plaintext Message"
+                onTranscribed={(spokenText) => {
+                  setMessage((prev) => (prev ? `${prev} ${spokenText}` : spokenText));
+                  if (errorMessage) setErrorMessage(null);
+                }}
+              />
+              {message.length > 0 && (
+                <span className="text-xs text-neutral-400">
+                  {message.length} character{message.length === 1 ? '' : 's'}
+                </span>
+              )}
+            </div>
           </div>
 
           <textarea

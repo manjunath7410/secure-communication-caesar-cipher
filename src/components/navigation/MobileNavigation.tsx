@@ -11,7 +11,8 @@ import {
   User,
   Shield,
   Cpu,
-  X
+  X,
+  Radio,
 } from 'lucide-react';
 import { AppView } from '../../types/navigation';
 import { useAuth } from '../../hooks/useAuth';
@@ -19,11 +20,13 @@ import { useAuth } from '../../hooks/useAuth';
 interface MobileNavigationProps {
   currentView: AppView;
   onViewChange: (view: AppView) => void;
+  onOpenVoice?: () => void;
 }
 
 export const MobileNavigation: React.FC<MobileNavigationProps> = ({
   currentView,
   onViewChange,
+  onOpenVoice,
 }) => {
   const [showMore, setShowMore] = useState(false);
   const { isAuthenticated } = useAuth();
@@ -92,6 +95,23 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
           </button>
         </div>
         <div className="p-2 grid grid-cols-3 gap-2 pb-safe">
+          {onOpenVoice && (
+            <button
+              type="button"
+              onClick={() => {
+                setShowMore(false);
+                onOpenVoice();
+              }}
+              className="flex flex-col items-center justify-center p-3 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/60 dark:border-blue-800/60 active:scale-95 transition-all text-blue-700 dark:text-blue-300 gap-1.5 cursor-pointer"
+            >
+              <div className="relative w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                <Radio className="w-5 h-5" />
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500" />
+              </div>
+              <span className="text-[11px] font-bold text-center">Voice Copilot</span>
+            </button>
+          )}
           {moreItems.map((item) => {
             const Icon = item.icon;
             return (

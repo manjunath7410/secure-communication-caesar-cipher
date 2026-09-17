@@ -1,3 +1,8 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import React, { useState } from 'react';
 import {
   Lock,
@@ -7,18 +12,26 @@ import {
   Clock,
   Copy,
   Check,
-  BookOpen,
-  MapPin,
+  Radio,
+  Mic,
   ShieldCheck,
   ChevronRight,
   Settings2,
-  Info
+  Info,
+  Sparkles,
+  Flame,
+  Minus,
+  Plus,
+  RefreshCw,
+  Cpu,
 } from 'lucide-react';
 import { AppView } from '../types/navigation';
 import { useOperationsLog } from '../hooks/useOperationsLog';
 import { copyToClipboard } from '../utils/clipboard';
 import { Logo } from '../components/branding/Logo';
 import { useShift } from '../context/ShiftContext';
+import { LiveVoiceCopilot } from '../components/audio/LiveVoiceCopilot';
+import { AudioTranscribeModal } from '../components/audio/AudioTranscribeModal';
 
 interface HomePageProps {
   onNavigate: (view: AppView) => void;
@@ -29,7 +42,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
   const { activities } = useOperationsLog();
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [showEdu, setShowEdu] = useState(false);
-  const { shift } = useShift();
+  const { shift, setShift } = useShift();
+
+  // Voice Modals State
+  const [isLiveVoiceOpen, setIsLiveVoiceOpen] = useState(false);
+  const [isTranscribeOpen, setIsTranscribeOpen] = useState(false);
+  const [transcribeTarget, setTranscribeTarget] = useState<'encrypt' | 'decrypt'>('encrypt');
 
   const handleCopy = async (id: string, text: string) => {
     const success = await copyToClipboard(text);
@@ -44,74 +62,215 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
     const diff = Math.max(0, Date.now() - timestamp);
     const minutes = Math.floor(diff / 60000);
     if (minutes < 1) return 'Just now';
-    if (minutes === 1) return '1 min ago';
-    if (minutes < 60) return `${minutes} min ago`;
+    if (minutes === 1) return '1m ago';
+    if (minutes < 60) return `${minutes}m ago`;
     const hours = Math.floor(minutes / 60);
-    if (hours === 1) return '1 hr ago';
-    if (hours < 24) return `${hours} hrs ago`;
+    if (hours === 1) return '1h ago';
+    if (hours < 24) return `${hours}h ago`;
     const days = Math.floor(hours / 24);
     return `${days}d ago`;
   };
 
-  const recentActivities = activities.slice(0, 4);
-  const mobileActivities = activities.slice(0, 2);
+  const getShiftedChar = (char: string, shiftVal: number) => {
+    const code = char.charCodeAt(0);
+    return String.fromCharCode(((code - 65 + shiftVal) % 26) + 65);
+  };
 
+  const handleIncrementShift = () => {
+    setShift((shift + 1) % 26);
+  };
+
+  const handleDecrementShift = () => {
+    setShift((shift - 1 + 26) % 26);
+  };
+
+  const handleOpenTranscribe = (target: 'encrypt' | 'decrypt', e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setTranscribeTarget(target);
+    setIsTranscribeOpen(true);
+  };
+
+  const handleTranscribedText = (text: string) => {
+    if (transcribeTarget === 'encrypt') {
+      onNavigate('encrypt');
+    } else {
+      onNavigate('decrypt');
+    }
+    onToast?.('info', 'Voice Dictation Captured', 'Transcribed with gemini-3.5-transcribe.');
+  };
+
+  const recentActivities = activities.slice(0, 5);
+  const mobileActivities = activities.slice(0, 4);
+
+  // ---------------------------------------------------------------------------
+  // DESKTOP PRESENTATION
+  // ---------------------------------------------------------------------------
   const renderDesktop = () => (
-    <div className="hidden md:block w-full max-w-3xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8">
+    <div className="hidden md:block w-full max-w-4xl mx-auto px-6 py-8 space-y-8">
       {/* Educational Notice Badge */}
-      <div className="p-4 rounded-2xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 flex items-start gap-3 transition-colors">
+      <div className="p-4 rounded-2xl bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 flex items-start gap-3 transition-colors">
         <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
         <div className="text-xs sm:text-sm text-amber-900 dark:text-amber-200 leading-relaxed">
-          <span className="font-semibold">Educational use only.</span> Caesar Cipher is a classical shift cipher and is intended for cryptography study and research.
+          <span className="font-semibold">Educational military cryptography platform.</span> Demonstrates classical Caesar Cipher substitution, vulnerability vectors, frequency cryptanalysis, and real-time AI live communications.
         </div>
       </div>
 
-      {/* Main Greeting & Call to Action with Logo */}
-      <div className="text-center space-y-4 py-4 sm:py-6 flex flex-col items-center">
+      {/* Hero Banner with Logo */}
+      <div className="text-center space-y-3 py-3 flex flex-col items-center">
         <Logo size="2xl" variant="default" id="home-hero-logo" />
 
-        <div className="space-y-1.5 max-w-lg">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
-            Secure Communication
+        <div className="space-y-1 max-w-lg">
+          <h1 className="text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            Secure Military Communication
           </h1>
-          <p className="text-sm sm:text-base text-neutral-500 dark:text-neutral-400 font-medium">
-            Caesar Cipher Educational Tool
-          </p>
-          <p className="text-sm text-neutral-600 dark:text-neutral-300 pt-1">
-            Encrypt and decrypt messages using interactive shift algorithms, vulnerability analysis, and frequency cryptanalysis.
+          <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium">
+            Caesar Cipher Platform & Tactical Intelligence Operations
           </p>
         </div>
+      </div>
 
-        {/* Primary Action Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 w-full max-w-md mx-auto">
-          <button
-            type="button"
-            id="home-btn-encrypt"
-            onClick={() => onNavigate('encrypt')}
-            className="w-full sm:w-auto flex-1 h-12 px-6 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-medium text-sm flex items-center justify-center gap-2 shadow-sm active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <Lock className="w-4 h-4" />
-            <span>Encrypt Message</span>
-          </button>
+      {/* Primary Actions CSS Grid */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Encrypt Card */}
+        <div
+          onClick={() => onNavigate('encrypt')}
+          className="group relative p-6 rounded-2xl bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-md hover:shadow-lg cursor-pointer transition-all flex flex-col justify-between h-[200px]"
+        >
+          <div className="flex items-start justify-between">
+            <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/20">
+              <Lock className="w-6 h-6 text-white" />
+            </div>
+            <span className="px-2.5 py-1 rounded-full bg-white/20 text-xs font-mono font-semibold">
+              k = {shift}
+            </span>
+          </div>
 
-          <button
-            type="button"
-            id="home-btn-decrypt"
-            onClick={() => onNavigate('decrypt')}
-            className="w-full sm:w-auto flex-1 h-12 px-6 rounded-xl bg-white dark:bg-neutral-900 hover:bg-neutral-50 dark:hover:bg-neutral-800 text-neutral-900 dark:text-neutral-100 font-medium text-sm border border-neutral-200 dark:border-neutral-800 flex items-center justify-center gap-2 shadow-2xs active:scale-[0.98] transition-all cursor-pointer"
-          >
-            <Unlock className="w-4 h-4" />
-            <span>Decrypt Message</span>
-          </button>
+          <div>
+            <h3 className="text-xl font-bold tracking-tight mb-1 flex items-center gap-2">
+              Encrypt Message
+              <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform" />
+            </h3>
+            <p className="text-xs text-blue-100/90 leading-relaxed">
+              Encode plaintext dispatches using mathematical alphabet shifting.
+            </p>
+          </div>
+
+          <div className="pt-2 border-t border-white/15 flex items-center justify-between">
+            <span className="text-xs text-blue-200">1-Touch Encryptor</span>
+            <button
+              type="button"
+              onClick={(e) => handleOpenTranscribe('encrypt', e)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-xs font-medium text-white transition-colors"
+            >
+              <Mic className="w-3.5 h-3.5" />
+              <span>Voice Dictate</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Decrypt Card */}
+        <div
+          onClick={() => onNavigate('decrypt')}
+          className="group relative p-6 rounded-2xl bg-gradient-to-br from-indigo-600 to-slate-900 hover:from-indigo-700 hover:to-slate-950 text-white shadow-md hover:shadow-lg cursor-pointer transition-all flex flex-col justify-between h-[200px]"
+        >
+          <div className="flex items-start justify-between">
+            <div className="w-12 h-12 rounded-xl bg-white/15 backdrop-blur-xs flex items-center justify-center border border-white/20">
+              <Unlock className="w-6 h-6 text-white" />
+            </div>
+            <span className="px-2.5 py-1 rounded-full bg-white/20 text-xs font-mono font-semibold">
+              Reverse Shift
+            </span>
+          </div>
+
+          <div>
+            <h3 className="text-xl font-bold tracking-tight mb-1 flex items-center gap-2">
+              Decrypt Message
+              <ArrowRight className="w-4 h-4 opacity-70 group-hover:translate-x-1 transition-transform" />
+            </h3>
+            <p className="text-xs text-indigo-100/90 leading-relaxed">
+              Decode intercepted ciphertext back into readable plaintext or run cryptanalysis.
+            </p>
+          </div>
+
+          <div className="pt-2 border-t border-white/15 flex items-center justify-between">
+            <span className="text-xs text-indigo-200">Brute-Force & Decryptor</span>
+            <button
+              type="button"
+              onClick={(e) => handleOpenTranscribe('decrypt', e)}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/20 hover:bg-white/30 text-xs font-medium text-white transition-colors"
+            >
+              <Mic className="w-3.5 h-3.5" />
+              <span>Voice Dictate</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Real-Time AI Operations Banner (gemini-3.8-live & gemini-3.5-transcribe) */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* Live Copilot */}
+        <div
+          onClick={() => setIsLiveVoiceOpen(true)}
+          className="p-5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-xs hover:border-blue-400 dark:hover:border-blue-700 cursor-pointer transition-all flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="relative">
+              <div className="w-11 h-11 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <Radio className="w-5 h-5" />
+              </div>
+              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                  Live Voice Copilot
+                </h4>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-semibold">
+                  gemini-3.8-live
+                </span>
+              </div>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                Real-time duplex conversational radio assistant
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-neutral-400" />
+        </div>
+
+        {/* Audio Transcribe */}
+        <div
+          onClick={() => handleOpenTranscribe('encrypt')}
+          className="p-5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-xs hover:border-indigo-400 dark:hover:border-indigo-700 cursor-pointer transition-all flex items-center justify-between"
+        >
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <Mic className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
+                  Audio Transcription
+                </h4>
+                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-semibold">
+                  gemini-3.5-transcribe
+                </span>
+              </div>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
+                Verbatim microphone speech-to-text dictation
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-neutral-400" />
         </div>
       </div>
 
       {/* Recent Activity Section */}
-      <div className="space-y-3 pt-4">
+      <div className="space-y-3 pt-2">
         <div className="flex items-center justify-between">
           <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
             <Clock className="w-4 h-4 text-neutral-500" />
-            <span>Recent activity</span>
+            <span>Recent operational activity</span>
           </h2>
           {activities.length > 0 && (
             <button
@@ -119,7 +278,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
               onClick={() => onNavigate('history')}
               className="text-xs font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
             >
-              <span>View all</span>
+              <span>View all logs</span>
               <ArrowRight className="w-3 h-3" />
             </button>
           )}
@@ -128,7 +287,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
         {recentActivities.length === 0 ? (
           <div className="p-8 rounded-2xl bg-neutral-50 dark:bg-neutral-900/50 border border-neutral-200 dark:border-neutral-800 text-center space-y-1">
             <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
-              No recent activity
+              No recent cipher activity
             </p>
             <p className="text-xs text-neutral-500 dark:text-neutral-400">
               Your encrypted and decrypted messages will appear here.
@@ -138,52 +297,48 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
           <div className="space-y-2">
             {recentActivities.map((act) => {
               const isEnc = act.type === 'ENCRYPT';
-              const textToCopy = act.outputSnippet;
-              const isCopied = copiedId === act.id;
-
               return (
                 <div
                   key={act.id}
-                  className="p-4 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 flex items-center justify-between gap-4 shadow-2xs hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors"
+                  className="p-3.5 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-2xs flex items-center justify-between gap-4 hover:border-neutral-300 dark:hover:border-neutral-700 transition-colors"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
-                      className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                      className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
                         isEnc
-                          ? 'bg-blue-100 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
-                          : 'bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400'
-                       }`}
+                          ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                          : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                      }`}
                     >
                       {isEnc ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                     </div>
-
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-xs font-semibold text-neutral-900 dark:text-neutral-100">
-                          {isEnc ? 'Encrypted message' : 'Decrypted message'}
+                          {isEnc ? 'ENCRYPTED' : 'DECRYPTED'}
                         </span>
-                        <span className="text-[11px] px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-400 font-mono">
-                          Shift {act.shift}
+                        <span className="text-[11px] font-mono font-medium px-1.5 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                          k = {act.shift}
                         </span>
                       </div>
-                      <p className="text-xs font-mono text-neutral-600 dark:text-neutral-400 truncate mt-0.5">
-                        {act.outputSnippet || act.inputSnippet}
+                      <p className="text-xs text-neutral-500 dark:text-neutral-400 truncate mt-0.5 font-mono max-w-md">
+                        {act.output}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-xs text-neutral-400">
+                    <span className="text-[11px] text-neutral-400">
                       {formatRelativeTime(act.timestamp)}
                     </span>
                     <button
                       type="button"
-                      onClick={() => handleCopy(act.id, textToCopy)}
-                      className="p-1.5 rounded-lg text-neutral-500 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors cursor-pointer"
-                      title="Copy result"
+                      onClick={() => handleCopy(act.id, act.output)}
+                      className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                      title="Copy message output"
                     >
-                      {isCopied ? (
-                        <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      {copiedId === act.id ? (
+                        <Check className="w-3.5 h-3.5 text-emerald-500" />
                       ) : (
                         <Copy className="w-3.5 h-3.5" />
                       )}
@@ -195,243 +350,365 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
           </div>
         )}
       </div>
-
-      {/* Educational & Map Quick Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div
-          onClick={() => onNavigate('map')}
-          className="p-5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 flex items-center justify-between gap-4 cursor-pointer hover:border-blue-300 dark:hover:border-blue-800 transition-all shadow-2xs group"
-        >
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <MapPin className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                Relay Station Map
-              </h3>
-              <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
-                Explore global crypto nodes, transmission frequencies, &amp; routing paths.
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-blue-500 shrink-0 transition-colors" />
-        </div>
-
-        <div
-          onClick={() => onNavigate('learn')}
-          className="p-5 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-neutral-900 dark:to-neutral-900 border border-blue-100 dark:border-neutral-800 flex items-center justify-between gap-4 cursor-pointer hover:border-blue-300 dark:hover:border-neutral-700 transition-all shadow-2xs group"
-        >
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                How does the Cipher work?
-              </h3>
-              <p className="text-xs text-neutral-600 dark:text-neutral-400 mt-0.5">
-                Explore shift diagrams, letter frequency, and security limits.
-              </p>
-            </div>
-          </div>
-          <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-blue-500 shrink-0 transition-colors" />
-        </div>
-      </div>
     </div>
   );
 
-  const getShiftedChar = (char: string, shiftVal: number) => {
-    const code = char.charCodeAt(0);
-    return String.fromCharCode(((code - 65 + shiftVal) % 26) + 65);
-  };
-
+  // ---------------------------------------------------------------------------
+  // MOBILE DENSE CSS-GRID DASHBOARD PRESENTATION (Active on screens < 768px)
+  // ---------------------------------------------------------------------------
   const renderMobile = () => (
-    <div className="block md:hidden w-full px-4 pt-6 pb-24 space-y-6">
-      
-      {/* Security Status Card */}
-      <div className="bg-white dark:bg-neutral-900 rounded-[20px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.2)] border border-neutral-100 dark:border-neutral-800">
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-              <ShieldCheck className="w-5 h-5" />
+    <div className="block md:hidden w-full px-3.5 pt-4 pb-24 space-y-4">
+      {/* 1. Primary 1x2 CSS Grid Action Cards (Overriding landing-page hero layout on mobile < 768px) */}
+      <div className="grid grid-cols-2 gap-4">
+        {/* ENCRYPT CARD - Elevated Tactical Blue Surface */}
+        <div
+          id="mobile-encrypt-card"
+          onClick={() => onNavigate('encrypt')}
+          className="relative rounded-2xl p-4 sm:p-5 bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 text-white border border-blue-400/30 shadow-lg hover:shadow-xl shadow-blue-600/15 flex flex-col justify-between min-h-[180px] active:scale-[0.98] transition-all cursor-pointer overflow-hidden group"
+        >
+          {/* Top Row: Prominent Action Icon & Key Chip */}
+          <div className="flex items-start justify-between">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-md border border-white/25 group-hover:scale-105 transition-transform">
+              <Lock className="w-6 h-6 text-white drop-shadow-xs" />
+            </div>
+            <span className="px-2.5 py-1 rounded-lg bg-black/25 backdrop-blur-xs border border-white/20 text-xs font-mono font-bold text-blue-100 shadow-2xs">
+              k = {shift}
+            </span>
+          </div>
+
+          {/* Central Title & Label */}
+          <div className="my-auto py-2.5">
+            <h3 className="text-lg sm:text-xl font-black tracking-tight uppercase leading-tight">
+              Encrypt
+            </h3>
+            <p className="text-xs text-blue-100/90 font-medium leading-tight mt-0.5">
+              Encode Plaintext
+            </p>
+          </div>
+
+          {/* Bottom Action Tray: Voice Dictation & Arrow */}
+          <div className="flex items-center justify-between pt-2.5 border-t border-white/20">
+            <button
+              type="button"
+              onClick={(e) => handleOpenTranscribe('encrypt', e)}
+              className="px-2 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white active:scale-95 transition-all flex items-center gap-1.5 text-xs font-semibold backdrop-blur-xs border border-white/20"
+              title="Dictate message with microphone"
+            >
+              <Mic className="w-3.5 h-3.5 text-blue-200" />
+              <span>Voice</span>
+            </button>
+            <div className="w-8 h-8 rounded-full bg-white text-blue-700 flex items-center justify-center shadow-md group-hover:translate-x-0.5 transition-transform">
+              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+            </div>
+          </div>
+        </div>
+
+        {/* DECRYPT CARD - Elevated Tactical Indigo/Purple Surface */}
+        <div
+          id="mobile-decrypt-card"
+          onClick={() => onNavigate('decrypt')}
+          className="relative rounded-2xl p-4 sm:p-5 bg-gradient-to-br from-indigo-700 via-purple-800 to-slate-900 text-white border border-indigo-400/30 shadow-lg hover:shadow-xl shadow-indigo-600/15 flex flex-col justify-between min-h-[180px] active:scale-[0.98] transition-all cursor-pointer overflow-hidden group"
+        >
+          {/* Top Row: Prominent Action Icon & Decipher Badge */}
+          <div className="flex items-start justify-between">
+            <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-md border border-white/25 group-hover:scale-105 transition-transform">
+              <Unlock className="w-6 h-6 text-white drop-shadow-xs" />
+            </div>
+            <span className="px-2.5 py-1 rounded-lg bg-black/25 backdrop-blur-xs border border-white/20 text-xs font-mono font-bold text-indigo-100 shadow-2xs">
+              Decipher
+            </span>
+          </div>
+
+          {/* Central Title & Label */}
+          <div className="my-auto py-2.5">
+            <h3 className="text-lg sm:text-xl font-black tracking-tight uppercase leading-tight">
+              Decrypt
+            </h3>
+            <p className="text-xs text-indigo-100/90 font-medium leading-tight mt-0.5">
+              Decode Ciphertext
+            </p>
+          </div>
+
+          {/* Bottom Action Tray: Voice Dictation & Arrow */}
+          <div className="flex items-center justify-between pt-2.5 border-t border-white/20">
+            <button
+              type="button"
+              onClick={(e) => handleOpenTranscribe('decrypt', e)}
+              className="px-2 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white active:scale-95 transition-all flex items-center gap-1.5 text-xs font-semibold backdrop-blur-xs border border-white/20"
+              title="Dictate ciphertext with microphone"
+            >
+              <Mic className="w-3.5 h-3.5 text-indigo-200" />
+              <span>Voice</span>
+            </button>
+            <div className="w-8 h-8 rounded-full bg-white text-indigo-700 flex items-center justify-center shadow-md group-hover:translate-x-0.5 transition-transform">
+              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Tactical Security & Operational Status Bar */}
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl p-3.5 shadow-2xs border border-neutral-200/90 dark:border-neutral-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+              <ShieldCheck className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-[15px] font-semibold text-neutral-900 dark:text-neutral-100">Secure session</h2>
-              <p className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-0.5">Protection active</p>
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
+                  Tactical Engine Online
+                </span>
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+              </div>
+              <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
+                Hardware biometric lock & cipher active
+              </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50">
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-[11px] font-medium text-emerald-700 dark:text-emerald-400">Protected</span>
+
+          <button
+            type="button"
+            onClick={() => onNavigate('settings')}
+            className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+          >
+            <Settings2 className="w-4 h-4" />
+          </button>
+        </div>
+      </div>
+
+      {/* 3. Real-Time AI Intelligence Grid (Live API & Transcribe) */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Live Tactical Voice Card */}
+        <div
+          onClick={() => setIsLiveVoiceOpen(true)}
+          className="p-3.5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-2xs flex flex-col justify-between active:scale-[0.98] transition-all cursor-pointer"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="relative">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                <Radio className="w-4 h-4" />
+              </div>
+              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+              <div className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500" />
+            </div>
+            <span className="text-[9px] font-mono uppercase font-bold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.5 rounded">
+              Live Duplex
+            </span>
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
+              Voice Copilot
+            </h4>
+            <p className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 mt-0.5">
+              gemini-3.8-live
+            </p>
+          </div>
+        </div>
+
+        {/* Audio Transcribe Card */}
+        <div
+          onClick={() => handleOpenTranscribe('encrypt')}
+          className="p-3.5 rounded-2xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-2xs flex flex-col justify-between active:scale-[0.98] transition-all cursor-pointer"
+        >
+          <div className="flex items-center justify-between mb-2">
+            <div className="w-8 h-8 rounded-xl bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+              <Mic className="w-4 h-4" />
+            </div>
+            <span className="text-[9px] font-mono uppercase font-bold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/60 px-1.5 py-0.5 rounded">
+              Transcribe
+            </span>
+          </div>
+          <div>
+            <h4 className="text-xs font-bold text-neutral-900 dark:text-neutral-100 leading-tight">
+              Voice Dictation
+            </h4>
+            <p className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 mt-0.5">
+              gemini-3.5-transcribe
+            </p>
           </div>
         </div>
       </div>
 
-      {/* Primary Actions */}
-      <div className="grid grid-cols-2 gap-4">
-        <button
-          type="button"
-          onClick={() => onNavigate('encrypt')}
-          className="relative flex flex-col items-center p-5 rounded-[24px] bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-[0_8px_20px_rgba(37,99,235,0.2)] active:scale-[0.98] transition-all cursor-pointer group overflow-hidden h-[250px]"
-        >
-          {/* Abstract background waves */}
-          <div className="absolute inset-0 opacity-30 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 80% 20%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 20% 80%, rgba(0,0,0,0.15) 0%, transparent 50%)' }} />
-          
-          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4 mt-2 shadow-[inset_0_2px_4px_rgba(255,255,255,0.2)] border border-white/10 z-10">
-            <Lock className="w-7 h-7 text-white" />
+      {/* 4. Active Shift Quick Wheel Controller */}
+      <div className="bg-white dark:bg-neutral-900 rounded-2xl p-3.5 border border-neutral-200 dark:border-neutral-800 shadow-2xs space-y-2.5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-neutral-900 dark:text-neutral-100">
+              Shift Key Controller
+            </span>
+            <button
+              type="button"
+              onClick={() => setShift(13)}
+              className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded-md border transition-colors ${
+                shift === 13
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300 border-neutral-200 dark:border-neutral-700'
+              }`}
+            >
+              ROT13
+            </button>
           </div>
-          
-          <h3 className="text-[20px] font-bold leading-tight text-center mb-3 z-10">Encrypt<br/>Message</h3>
-          <p className="text-[12px] text-blue-100 text-center leading-relaxed px-1 z-10">Convert your message<br/>into secure cipher text.</p>
-          
-          <div className="absolute bottom-5 right-5 w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-md z-10 group-hover:scale-110 transition-transform">
-            <ArrowRight className="w-4 h-4 text-blue-600" />
-          </div>
-        </button>
 
-        <button
-          type="button"
-          onClick={() => onNavigate('decrypt')}
-          className="relative flex flex-col items-center p-5 rounded-[24px] bg-gradient-to-br from-indigo-500 to-indigo-600 text-white shadow-[0_8px_20px_rgba(99,102,241,0.2)] active:scale-[0.98] transition-all cursor-pointer group overflow-hidden h-[250px]"
-        >
-          {/* Abstract background waves */}
-          <div className="absolute inset-0 opacity-30 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 20% 20%, rgba(255,255,255,0.3) 0%, transparent 50%), radial-gradient(circle at 80% 80%, rgba(0,0,0,0.15) 0%, transparent 50%)' }} />
-
-          <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center mb-4 mt-2 shadow-[inset_0_2px_4px_rgba(255,255,255,0.2)] border border-white/10 z-10">
-            <Unlock className="w-7 h-7 text-white" />
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              onClick={handleDecrementShift}
+              className="w-7 h-7 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center justify-center active:scale-95 transition-all"
+            >
+              <Minus className="w-3.5 h-3.5" />
+            </button>
+            <span className="w-12 text-center text-xs font-mono font-bold text-neutral-900 dark:text-neutral-100">
+              k = {shift}
+            </span>
+            <button
+              type="button"
+              onClick={handleIncrementShift}
+              className="w-7 h-7 rounded-lg bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-200 flex items-center justify-center active:scale-95 transition-all"
+            >
+              <Plus className="w-3.5 h-3.5" />
+            </button>
           </div>
-          
-          <h3 className="text-[20px] font-bold leading-tight text-center mb-3 z-10">Decrypt<br/>Message</h3>
-          <p className="text-[12px] text-indigo-100 text-center leading-relaxed px-1 z-10">Decode your cipher text<br/>back to original message.</p>
-          
-          <div className="absolute bottom-5 right-5 w-9 h-9 rounded-full bg-white flex items-center justify-center shadow-md z-10 group-hover:scale-110 transition-transform">
-            <ArrowRight className="w-4 h-4 text-indigo-600" />
-          </div>
-        </button>
-      </div>
-
-      {/* Active Cipher Card */}
-      <div 
-        onClick={() => onNavigate('settings')}
-        className="bg-white dark:bg-neutral-900 rounded-[20px] p-5 shadow-[0_2px_12px_rgba(0,0,0,0.04)] dark:shadow-[0_2px_12px_rgba(0,0,0,0.2)] border border-neutral-100 dark:border-neutral-800 active:bg-neutral-50 dark:active:bg-neutral-800/80 transition-colors cursor-pointer"
-      >
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-[14px] font-medium text-neutral-500 dark:text-neutral-400">Current cipher</h2>
-          <Settings2 className="w-4 h-4 text-neutral-400" />
-        </div>
-        
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-[16px] font-semibold text-neutral-900 dark:text-neutral-100">Caesar Cipher</span>
-          <span className="text-[13px] font-mono font-medium px-2 py-0.5 rounded-lg bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
-            Shift {shift}
-          </span>
         </div>
 
-        <div className="flex items-center gap-4 text-[13px] font-mono text-neutral-600 dark:text-neutral-400 mb-4 overflow-hidden whitespace-nowrap">
+        {/* Live Alphabet Mapping Strip */}
+        <div className="p-2 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200/80 dark:border-neutral-800 flex items-center justify-between text-[11px] font-mono text-neutral-600 dark:text-neutral-300">
           <span>A→{getShiftedChar('A', shift)}</span>
           <span>B→{getShiftedChar('B', shift)}</span>
           <span>C→{getShiftedChar('C', shift)}</span>
-          <span>...</span>
-        </div>
-
-        <div className="flex items-center justify-between border-t border-neutral-100 dark:border-neutral-800 pt-3">
-          <span className="text-[14px] font-medium text-blue-600 dark:text-blue-400">Change shift</span>
-          <ChevronRight className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+          <span>M→{getShiftedChar('M', shift)}</span>
+          <span>Z→{getShiftedChar('Z', shift)}</span>
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="space-y-3">
-        <div className="flex items-center justify-between px-1">
-          <h2 className="text-[16px] font-semibold text-neutral-900 dark:text-neutral-100">Recent activity</h2>
+      {/* 5. Quick Cryptanalysis / Brute-Force Card */}
+      <div
+        onClick={() => onNavigate('bruteforce')}
+        className="bg-neutral-900 text-white rounded-2xl p-3.5 border border-neutral-800 flex items-center justify-between active:scale-[0.98] transition-transform cursor-pointer shadow-xs"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400">
+            <Flame className="w-4 h-4" />
+          </div>
+          <div>
+            <h4 className="text-xs font-bold tracking-wide">
+              Brute-Force Attack Analyzer
+            </h4>
+            <p className="text-[10px] text-neutral-400">
+              Test all 25 shift permutations in parallel
+            </p>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-neutral-400" />
+      </div>
+
+      {/* 6. Recent Activity Log Feed */}
+      <div className="space-y-2 pt-1">
+        <div className="flex items-center justify-between px-0.5">
+          <span className="text-xs font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
+            <Clock className="w-3.5 h-3.5 text-neutral-400" />
+            Recent Activity
+          </span>
           {activities.length > 0 && (
-             <button
-               type="button"
-               onClick={() => onNavigate('history')}
-               className="text-[14px] font-medium text-blue-600 dark:text-blue-400 active:opacity-70 transition-opacity"
-             >
-               View all
-             </button>
+            <button
+              type="button"
+              onClick={() => onNavigate('history')}
+              className="text-[11px] font-semibold text-blue-600 dark:text-blue-400"
+            >
+              View all
+            </button>
           )}
         </div>
 
         {mobileActivities.length === 0 ? (
-          <div className="bg-white dark:bg-neutral-900 rounded-[20px] p-6 text-center border border-neutral-100 dark:border-neutral-800 shadow-[0_2px_8px_rgba(0,0,0,0.02)]">
-            <p className="text-[15px] font-medium text-neutral-900 dark:text-neutral-100">Nothing here yet</p>
-            <p className="text-[13px] text-neutral-500 dark:text-neutral-400 mt-1 mb-4">Encrypt your first message to see activity here.</p>
-            <button
-               type="button"
-               onClick={() => onNavigate('encrypt')}
-               className="text-[14px] font-medium text-blue-600 dark:text-blue-400 inline-flex items-center gap-1 active:opacity-70"
-            >
-              Encrypt message <ArrowRight className="w-4 h-4" />
-            </button>
+          <div className="p-4 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 text-center text-xs text-neutral-500">
+            No cipher messages logged yet. Encrypt your first dispatch above!
           </div>
         ) : (
-          <div className="space-y-3">
-             {mobileActivities.map(act => {
-               const isEnc = act.type === 'ENCRYPT';
-               return (
-                 <div
-                   key={act.id}
-                   onClick={() => onNavigate('history')}
-                   className="bg-white dark:bg-neutral-900 rounded-[20px] p-4 flex items-center justify-between gap-3 shadow-[0_2px_8px_rgba(0,0,0,0.03)] dark:shadow-none border border-neutral-100 dark:border-neutral-800 active:scale-[0.98] transition-all cursor-pointer"
-                 >
-                   <div className="flex items-center gap-3 min-w-0">
-                     <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                       isEnc ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'
-                     }`}>
-                       {isEnc ? <Lock className="w-5 h-5" /> : <Unlock className="w-5 h-5" />}
-                     </div>
-                     <div className="min-w-0">
-                       <h3 className="text-[15px] font-medium text-neutral-900 dark:text-neutral-100 truncate">
-                         {isEnc ? 'Encrypted message' : 'Decrypted message'}
-                       </h3>
-                       <div className="flex items-center gap-2 mt-0.5">
-                         <span className="text-[12px] font-mono text-neutral-500 dark:text-neutral-400">Shift {act.shift}</span>
-                         <span className="w-1 h-1 rounded-full bg-neutral-300 dark:bg-neutral-700" />
-                         <span className="text-[12px] text-neutral-400 dark:text-neutral-500">{formatRelativeTime(act.timestamp)}</span>
-                       </div>
-                     </div>
-                   </div>
-                   <ChevronRight className="w-5 h-5 text-neutral-300 dark:text-neutral-700 shrink-0" />
-                 </div>
-               );
-             })}
+          <div className="space-y-2">
+            {mobileActivities.map((act) => {
+              const isEnc = act.type === 'ENCRYPT';
+              return (
+                <div
+                  key={act.id}
+                  className="p-3 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 flex items-center justify-between gap-2 shadow-2xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
+                        isEnc
+                          ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400'
+                          : 'bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400'
+                      }`}
+                    >
+                      {isEnc ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-bold text-neutral-900 dark:text-neutral-100">
+                          {isEnc ? 'ENCRYPT' : 'DECRYPT'}
+                        </span>
+                        <span className="text-[10px] font-mono px-1 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-600 dark:text-neutral-300">
+                          k={act.shift}
+                        </span>
+                        <span className="text-[10px] text-neutral-400">
+                          {formatRelativeTime(act.timestamp)}
+                        </span>
+                      </div>
+                      <p className="text-[11px] font-mono text-neutral-500 dark:text-neutral-400 truncate max-w-[180px]">
+                        {act.output}
+                      </p>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleCopy(act.id, act.output)}
+                    className="p-1.5 rounded-lg text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 hover:bg-neutral-100 dark:hover:bg-neutral-800 shrink-0"
+                  >
+                    {copiedId === act.id ? (
+                      <Check className="w-3.5 h-3.5 text-emerald-500" />
+                    ) : (
+                      <Copy className="w-3.5 h-3.5" />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
           </div>
         )}
       </div>
 
-      {/* Educational Notice */}
-      <div className="bg-neutral-50 dark:bg-neutral-900/50 rounded-[20px] overflow-hidden border border-neutral-200/60 dark:border-neutral-800 transition-all">
+      {/* 7. Educational Collapsible Notice */}
+      <div className="bg-neutral-50 dark:bg-neutral-900/50 rounded-xl overflow-hidden border border-neutral-200/80 dark:border-neutral-800">
         <button
           type="button"
           onClick={() => setShowEdu(!showEdu)}
-          className="w-full p-4 flex items-center justify-between gap-3 active:bg-neutral-100 dark:active:bg-neutral-800/80 transition-colors cursor-pointer"
+          className="w-full p-3 flex items-center justify-between text-xs text-neutral-700 dark:text-neutral-300 font-medium"
         >
-          <div className="flex items-center gap-3">
-            <Info className="w-5 h-5 text-neutral-500 dark:text-neutral-400" />
-            <span className="text-[15px] font-medium text-neutral-700 dark:text-neutral-300">Educational cipher</span>
+          <div className="flex items-center gap-2">
+            <Info className="w-4 h-4 text-neutral-400" />
+            <span>Educational Research Cipher</span>
           </div>
-          <ChevronRight className={`w-5 h-5 text-neutral-400 transition-transform ${showEdu ? 'rotate-90' : ''}`} />
+          <ChevronRight
+            className={`w-4 h-4 text-neutral-400 transition-transform ${showEdu ? 'rotate-90' : ''}`}
+          />
         </button>
         {showEdu && (
-          <div className="px-4 pb-4 pt-1 text-[14px] text-neutral-600 dark:text-neutral-400 leading-relaxed border-t border-neutral-200/50 dark:border-neutral-800">
-            Caesar Cipher is intended for cryptography education and research. It should not be used to protect real sensitive information.
-            <div className="mt-3">
+          <div className="px-3 pb-3 text-[11px] text-neutral-500 dark:text-neutral-400 leading-relaxed border-t border-neutral-200/60 dark:border-neutral-800 pt-2">
+            Classical Caesar Cipher is intended for cryptographic study and algorithmic analysis. Modern communications require AES-256 or Post-Quantum Cryptography.
+            <div className="mt-2">
               <button
                 type="button"
                 onClick={() => onNavigate('learn')}
-                className="text-[14px] font-medium text-blue-600 dark:text-blue-400 active:opacity-70"
+                className="text-blue-600 dark:text-blue-400 font-semibold"
               >
-                Learn more
+                Explore Cryptography Module →
               </button>
             </div>
           </div>
         )}
       </div>
-
     </div>
   );
 
@@ -439,6 +716,22 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
     <>
       {renderDesktop()}
       {renderMobile()}
+
+      {/* Real-time Voice Tactical Copilot (gemini-3.8-live) */}
+      <LiveVoiceCopilot
+        isOpen={isLiveVoiceOpen}
+        onClose={() => setIsLiveVoiceOpen(false)}
+        onToast={onToast}
+      />
+
+      {/* Real-time Microphone Audio Transcriber (gemini-3.5-transcribe) */}
+      <AudioTranscribeModal
+        isOpen={isTranscribeOpen}
+        onClose={() => setIsTranscribeOpen(false)}
+        onInsertText={handleTranscribedText}
+        targetFieldLabel={transcribeTarget === 'encrypt' ? 'Encryptor' : 'Decryptor'}
+        defaultMode={transcribeTarget}
+      />
     </>
   );
 };

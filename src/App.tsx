@@ -32,6 +32,7 @@ import { SecurityInfoPage } from './pages/SecurityInfoPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { HealthStatusPage } from './pages/HealthStatusPage';
 import { AccountPage } from './pages/AccountPage';
+import { LiveVoiceCopilot } from './components/audio/LiveVoiceCopilot';
 
 // Types & Hooks
 import { AppView, UserSettings, ToastMessage } from './types/navigation';
@@ -41,6 +42,7 @@ import { useCapacitor } from './hooks/useCapacitor';
 function AppContent() {
   const [currentView, setCurrentView] = useState<AppView>('home');
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [isVoiceCopilotOpen, setIsVoiceCopilotOpen] = useState(false);
 
   // Hook for Native Android Capacitor Hardware Navigation & System Config
   useCapacitor(currentView, setCurrentView, (type, title, message) => {
@@ -106,6 +108,7 @@ function AppContent() {
         currentView={currentView}
         onViewChange={setCurrentView}
         onRefresh={refreshHealth}
+        onOpenVoice={() => setIsVoiceCopilotOpen(true)}
       />
 
       {/* Main Container */}
@@ -114,6 +117,7 @@ function AppContent() {
         <DesktopSidebar
           currentView={currentView}
           onViewChange={setCurrentView}
+          onOpenVoice={() => setIsVoiceCopilotOpen(true)}
         />
 
         {/* Center Main Stage View Container */}
@@ -177,10 +181,18 @@ function AppContent() {
       {/* Floating Toast Notification Dispatcher */}
       <ToastContainer toasts={toasts} onDismiss={handleDismissToast} />
 
+      {/* Global Live Voice Copilot Modal */}
+      <LiveVoiceCopilot
+        isOpen={isVoiceCopilotOpen}
+        onClose={() => setIsVoiceCopilotOpen(false)}
+        onToast={handleToast}
+      />
+
       {/* Mobile Navigation Drawer & Bottom Bar */}
       <MobileNavigation
         currentView={currentView}
         onViewChange={setCurrentView}
+        onOpenVoice={() => setIsVoiceCopilotOpen(true)}
       />
 
       {/* Footer */}
