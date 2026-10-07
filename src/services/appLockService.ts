@@ -255,6 +255,29 @@ export class AppLockService {
   }
 
   /**
+   * Recover & Reset PIN bypassing current PIN (after identity verification)
+   */
+  public async recoverAndResetPin(newPin: string): Promise<void> {
+    SecureStorageService.clearLockout();
+    await SecureStorageService.savePin(newPin);
+    const settings = this.getSettings();
+    this.updateSettings({ ...settings, enabled: true, pinConfigured: true });
+    this.isLocked = false;
+    this.lastActivityTime = Date.now();
+    this.notifyListeners();
+  }
+
+  /**
+   * Emergency unlock and clear lockout
+   */
+  public unlockAndClearLockout(): void {
+    SecureStorageService.clearLockout();
+    this.isLocked = false;
+    this.lastActivityTime = Date.now();
+    this.notifyListeners();
+  }
+
+  /**
    * Change existing PIN after verifying current PIN
    */
   public async changePin(currentPin: string, newPin: string): Promise<boolean> {

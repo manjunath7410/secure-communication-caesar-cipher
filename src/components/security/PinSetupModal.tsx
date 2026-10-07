@@ -4,9 +4,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { X, ShieldCheck, KeyRound, AlertCircle, ArrowLeft } from 'lucide-react';
+import { X, ShieldCheck, KeyRound, AlertCircle, ArrowLeft, HelpCircle } from 'lucide-react';
 import { PinPad } from './PinPad';
 import { useAppLock } from '../../context/AppLockContext';
+import { PinRecoveryModal } from './PinRecoveryModal';
 
 export type PinModalMode = 'setup' | 'change' | 'disable';
 
@@ -35,6 +36,7 @@ export const PinSetupModal: React.FC<PinSetupModalProps> = ({
   const [confirmPin, setConfirmPin] = useState<string>('');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
+  const [isRecoveryOpen, setIsRecoveryOpen] = useState<boolean>(false);
 
   // Reset state when opening/closing
   useEffect(() => {
@@ -298,7 +300,33 @@ export const PinSetupModal: React.FC<PinSetupModalProps> = ({
           error={!!errorMessage}
           idPrefix="modal-pin"
         />
+
+        {/* Forgot PIN Recovery Link when in Change or Disable mode */}
+        {((mode === 'change' && step === 1) || mode === 'disable') && (
+          <div className="pt-2 text-center">
+            <button
+              type="button"
+              id="pin-modal-forgot-pin-btn"
+              onClick={() => setIsRecoveryOpen(true)}
+              className="text-xs text-blue-600 dark:text-blue-400 hover:underline font-medium flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
+            >
+              <HelpCircle className="w-3.5 h-3.5" />
+              <span>Forgot current PIN? Recover / Reset</span>
+            </button>
+          </div>
+        )}
       </div>
+
+      {/* Embedded PIN Recovery Modal */}
+      <PinRecoveryModal
+        isOpen={isRecoveryOpen}
+        onClose={() => setIsRecoveryOpen(false)}
+        onSuccess={(msg) => {
+          setIsRecoveryOpen(false);
+          onSuccess(msg);
+          onClose();
+        }}
+      />
     </div>
   );
 };

@@ -5,11 +5,12 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Lock, Fingerprint, KeyRound, AlertTriangle, ShieldCheck, LogOut } from 'lucide-react';
+import { Lock, Fingerprint, KeyRound, AlertTriangle, ShieldCheck, LogOut, HelpCircle, ShieldAlert } from 'lucide-react';
 import { useAppLock } from '../../context/AppLockContext';
 import { useAuth } from '../../hooks/useAuth';
 import { PinPad } from './PinPad';
 import { Logo } from '../branding/Logo';
+import { PinRecoveryModal } from './PinRecoveryModal';
 
 export const AppLockScreen: React.FC = () => {
   const {
@@ -26,6 +27,7 @@ export const AppLockScreen: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [hasTriggeredInitialBiometrics, setHasTriggeredInitialBiometrics] = useState<boolean>(false);
+  const [isRecoveryModalOpen, setIsRecoveryModalOpen] = useState<boolean>(false);
 
   // Clear PIN & error on lock/unlock state transitions
   useEffect(() => {
@@ -176,13 +178,26 @@ export const AppLockScreen: React.FC = () => {
           idPrefix="lock-screen"
         />
 
+        {/* Forgot PIN / Recovery Option Button */}
+        <div className="w-full flex flex-col items-center gap-2 pt-1">
+          <button
+            type="button"
+            id="app-lock-forgot-pin-btn"
+            onClick={() => setIsRecoveryModalOpen(true)}
+            className="w-full py-2.5 px-3 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 border border-blue-200/70 dark:border-blue-800/60 text-blue-700 dark:text-blue-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer active:scale-98 shadow-2xs"
+          >
+            <KeyRound className="w-3.5 h-3.5" />
+            <span>Forgot 6-Digit PIN? Recover / Change PIN</span>
+          </button>
+        </div>
+
         {/* Biometrics Trigger Button */}
         {settings.biometricsEnabled && biometricAvailability.isAvailable && !isLockedOut && (
           <button
             type="button"
             id="app-lock-biometric-trigger"
             onClick={handleBiometricUnlock}
-            className="w-full py-3 px-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800/80 text-neutral-800 dark:text-neutral-200 text-xs font-medium flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-2xs active:scale-98"
+            className="w-full py-2.5 px-4 rounded-xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800/80 text-neutral-800 dark:text-neutral-200 text-xs font-medium flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-2xs active:scale-98"
           >
             <Fingerprint className="w-4 h-4 text-blue-600 dark:text-blue-400" />
             <span>Unlock with Biometrics</span>
@@ -196,16 +211,38 @@ export const AppLockScreen: React.FC = () => {
           {user ? `User: ${user.username}` : 'Operator session'}
         </span>
 
-        <button
-          type="button"
-          id="app-lock-signout-recovery"
-          onClick={handleSignOutRecovery}
-          className="hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center gap-1 cursor-pointer font-medium"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span>Sign Out</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsRecoveryModalOpen(true)}
+            className="text-blue-600 dark:text-blue-400 hover:underline font-medium text-[11px] cursor-pointer flex items-center gap-1"
+          >
+            <HelpCircle className="w-3 h-3" />
+            <span>Recover PIN</span>
+          </button>
+
+          <button
+            type="button"
+            id="app-lock-signout-recovery"
+            onClick={handleSignOutRecovery}
+            className="hover:text-red-600 dark:hover:text-red-400 transition-colors flex items-center gap-1 cursor-pointer font-medium text-[11px]"
+          >
+            <LogOut className="w-3 h-3" />
+            <span>Sign Out</span>
+          </button>
+        </div>
       </div>
+
+      {/* PIN Recovery & Reset Modal */}
+      <PinRecoveryModal
+        isOpen={isRecoveryModalOpen}
+        onClose={() => setIsRecoveryModalOpen(false)}
+        onSuccess={() => {
+          setIsRecoveryModalOpen(false);
+          setPin('');
+          setErrorMessage('');
+        }}
+      />
     </div>
   );
 };

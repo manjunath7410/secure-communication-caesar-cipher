@@ -19,6 +19,8 @@ interface AppLockContextType {
   unlockWithPin: (pin: string) => Promise<{ success: boolean; error?: string; lockoutSeconds?: number }>;
   unlockWithBiometrics: () => Promise<{ success: boolean; error?: string; cancelled?: boolean }>;
   setPin: (pin: string) => Promise<void>;
+  recoverAndResetPin: (newPin: string) => Promise<void>;
+  unlockAndClearLockout: () => void;
   changePin: (currentPin: string, newPin: string) => Promise<boolean>;
   disableAppLock: (pin?: string) => Promise<boolean>;
   updateSettings: (partial: Partial<AppLockSettings>) => void;
@@ -105,6 +107,17 @@ export const AppLockProvider: React.FC<{ children: ReactNode }> = ({ children })
   const setPin = useCallback(async (pin: string) => {
     await appLockService.setPin(pin);
     setSettings(appLockService.getSettings());
+  }, []);
+
+  const recoverAndResetPin = useCallback(async (newPin: string) => {
+    await appLockService.recoverAndResetPin(newPin);
+    setLockoutSecondsLeft(0);
+    setSettings(appLockService.getSettings());
+  }, []);
+
+  const unlockAndClearLockout = useCallback(() => {
+    appLockService.unlockAndClearLockout();
+    setLockoutSecondsLeft(0);
   }, []);
 
   const changePin = useCallback(async (currentPin: string, newPin: string) => {

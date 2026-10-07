@@ -15,6 +15,7 @@ import { runIntegrationTests } from './integration.test';
 import { runAndroidQATests } from './androidQA.test';
 import { runShiftSyncTests } from './shiftSync.test';
 import { runTacticalRadioPresetsTests } from './tacticalRadioPresets.test';
+import { runAppLockRecoveryTests } from './appLockRecovery.test';
 import { defaultApiClient } from '../services/apiClient';
 
 async function main() {
@@ -206,6 +207,19 @@ async function main() {
   console.log('\n--- EXECUTING PHASE 17: TACTICAL RADIO PRESETS & SIMULATOR TESTS ---');
   const presetResults = await runTacticalRadioPresetsTests();
   for (const t of presetResults) {
+    if (t.passed) {
+      totalPassed++;
+      console.log(`    ✓ [${t.category}] ${t.name} (${t.durationMs.toFixed(1)}ms)`);
+    } else {
+      totalFailed++;
+      console.log(`    ✗ [${t.category}] ${t.name} -> FAILED (${t.message})`);
+    }
+  }
+
+  // Phase 18: App Lock 6-Digit PIN Recovery & Reset Tests
+  console.log('\n--- EXECUTING PHASE 18: APP LOCK 6-DIGIT PIN RECOVERY & RESET TESTS ---');
+  const recoveryResults = await runAppLockRecoveryTests();
+  for (const t of recoveryResults) {
     if (t.passed) {
       totalPassed++;
       console.log(`    ✓ [${t.category}] ${t.name} (${t.durationMs.toFixed(1)}ms)`);

@@ -298,6 +298,13 @@ export class SecureStorageService {
   }
 
   /**
+   * Immediately clear lockout (e.g. during recovery)
+   */
+  public static clearLockout(): void {
+    this.resetFailedAttempts();
+  }
+
+  /**
    * Background timestamp recording for timeout calculation
    */
   public static recordBackgroundTime(timestamp: number = Date.now()): void {

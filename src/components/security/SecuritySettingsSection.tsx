@@ -15,10 +15,13 @@ import {
   Lock,
   CheckCircle2,
   AlertCircle,
+  HelpCircle,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAppLock } from '../../context/AppLockContext';
 import { AutoLockTimeout } from '../../types/appLock';
 import { PinSetupModal, PinModalMode } from './PinSetupModal';
+import { PinRecoveryModal } from './PinRecoveryModal';
 
 interface SecuritySettingsSectionProps {
   onToast?: (type: 'success' | 'info' | 'warning' | 'error', title: string, message?: string) => void;
@@ -34,6 +37,7 @@ export const SecuritySettingsSection: React.FC<SecuritySettingsSectionProps> = (
 
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [modalMode, setModalMode] = useState<PinModalMode>('setup');
+  const [recoveryModalOpen, setRecoveryModalOpen] = useState<boolean>(false);
 
   const handleToggleAppLock = () => {
     if (settings.enabled && settings.pinConfigured) {
@@ -181,14 +185,26 @@ export const SecuritySettingsSection: React.FC<SecuritySettingsSectionProps> = (
               </div>
             </div>
 
-            <button
-              type="button"
-              id="app-lock-change-pin-btn"
-              onClick={handleChangePin}
-              className="px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-medium cursor-pointer transition-colors"
-            >
-              Change PIN
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                id="app-lock-recover-pin-btn"
+                onClick={() => setRecoveryModalOpen(true)}
+                className="px-2.5 py-1.5 rounded-lg border border-blue-200/70 dark:border-blue-800/60 bg-blue-50/80 dark:bg-blue-950/40 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 text-xs font-medium cursor-pointer transition-colors flex items-center gap-1"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>Forgot PIN?</span>
+              </button>
+
+              <button
+                type="button"
+                id="app-lock-change-pin-btn"
+                onClick={handleChangePin}
+                className="px-3 py-1.5 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-900 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-700 dark:text-neutral-300 text-xs font-medium cursor-pointer transition-colors"
+              >
+                Change PIN
+              </button>
+            </div>
           </div>
 
           {/* Auto-Lock Timeout */}
@@ -381,6 +397,16 @@ export const SecuritySettingsSection: React.FC<SecuritySettingsSectionProps> = (
         mode={modalMode}
         onClose={() => setModalOpen(false)}
         onSuccess={handleModalSuccess}
+      />
+
+      {/* PIN Recovery & Reset Modal */}
+      <PinRecoveryModal
+        isOpen={recoveryModalOpen}
+        onClose={() => setRecoveryModalOpen(false)}
+        onSuccess={(msg) => {
+          setRecoveryModalOpen(false);
+          handleModalSuccess(msg);
+        }}
       />
     </section>
   );

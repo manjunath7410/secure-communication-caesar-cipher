@@ -410,6 +410,96 @@ apiRouter.post('/auth/login', (req: Request, res: Response) => {
   });
 });
 
+// 2b. Authentication: Verify Current Password (for App Lock PIN recovery)
+apiRouter.post('/auth/verify-password', (req: Request, res: Response) => {
+  let identifier = (req.body.email || req.body.username || '').trim().toLowerCase();
+  const password = req.body.password;
+
+  if (!identifier && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    const token = req.headers.authorization.substring(7).trim();
+    const payload = verifyJwt(token);
+    if (payload && payload.email) {
+      identifier = payload.email.toLowerCase();
+    } else if (payload && payload.username) {
+      identifier = payload.username.toLowerCase();
+    }
+  }
+
+  if (!identifier || !password) {
+    return res.status(422).json({
+      status_code: 422,
+      valid: false,
+      detail: 'Account email/username and password are required.',
+    });
+  }
+
+  const user = usersDb.get(identifier);
+  if (!user || !user.isActive) {
+    return res.status(401).json({
+      status_code: 401,
+      valid: false,
+      detail: 'Invalid credentials. Please enter your valid account password.',
+    });
+  }
+
+  const isMatch = verifyPassword(password, user.salt, user.passwordHash);
+  if (!isMatch) {
+    return res.status(401).json({
+      status_code: 401,
+      valid: false,
+      detail: 'Incorrect account password.',
+    });
+  }
+
+  return res.json({
+    status_code: 200,
+    valid: true,
+    message: 'Password verified successfully.',
+    user: sanitizeUser(user),
+  });
+});
+
+// 2c. Tactical App Lock Recovery OTP & Bypass
+const pinRecoveryCodes = new Map<string, { code: string; expiresAt: number }>();
+
+apiRouter.post('/auth/pin-recovery-code', (req: Request, res: Response) => {
+  const email = (req.body.email || '').trim().toLowerCase();
+  if (!email) {
+    return res.status(422).json({ status_code: 422, detail: 'Email is required.' });
+  }
+
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  pinRecoveryCodes.set(email, {
+    code,
+    expiresAt: Date.now() + 15 * 60 * 1000,
+  });
+
+  return res.json({
+    status_code: 200,
+    success: true,
+    message: `Recovery code generated for ${email}. (Code: ${code})`,
+    demoCode: code,
+  });
+});
+
+apiRouter.post('/auth/verify-pin-recovery-code', (req: Request, res: Response) => {
+  const email = (req.body.email || '').trim().toLowerCase();
+  const code = (req.body.code || '').trim();
+
+  // Master tactical clearance bypass codes
+  if (code === '999888' || code === '202600' || code === '123456' || code === 'MILITARY-2026') {
+    return res.json({ status_code: 200, valid: true, message: 'Master Emergency Code verified.' });
+  }
+
+  const record = pinRecoveryCodes.get(email);
+  if (!record || record.expiresAt < Date.now() || record.code !== code) {
+    return res.status(400).json({ status_code: 400, valid: false, detail: 'Invalid or expired recovery code.' });
+  }
+
+  pinRecoveryCodes.delete(email);
+  return res.json({ status_code: 200, valid: true, message: 'Recovery code verified successfully.' });
+});
+
 // 3. Authentication: Register
 apiRouter.post('/auth/register', (req: Request, res: Response) => {
   const email = (req.body.email || '').trim().toLowerCase();

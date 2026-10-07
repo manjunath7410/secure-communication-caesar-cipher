@@ -122,9 +122,26 @@
         }
       },
       "required": ["userId", "type", "timestamp"]
+    },
+    "ConnectionTest": {
+      "title": "ConnectionTest",
+      "description": "Connection health test document",
+      "type": "object",
+      "properties": {
+        "status": {
+          "type": "string",
+          "description": "Connection status string"
+        }
+      }
     }
   },
   "firestore": {
+    "/test/{docId}": {
+      "schema": {
+        "$ref": "#/entities/ConnectionTest"
+      },
+      "description": "Firestore connectivity test health check endpoint"
+    },
     "/users/{userId}": {
       "schema": {
         "$ref": "#/entities/UserProfile"

@@ -8,6 +8,7 @@ import {
   User as FirebaseUser
 } from 'firebase/auth';
 import { 
+  initializeFirestore,
   getFirestore, 
   doc, 
   getDocFromServer,
@@ -26,8 +27,18 @@ import firebaseConfig from '../../firebase-applet-config.json';
 // Initialize Firebase App singleton
 export const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Firestore with custom database ID from config
-export const db = getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
+// Initialize Firestore with custom database ID and long-polling auto-detection for resilient iframe/sandbox networking
+function createFirestoreInstance() {
+  try {
+    return initializeFirestore(firebaseApp, {
+      experimentalAutoDetectLongPolling: true,
+    }, firebaseConfig.firestoreDatabaseId);
+  } catch {
+    return getFirestore(firebaseApp, firebaseConfig.firestoreDatabaseId);
+  }
+}
+
+export const db = createFirestoreInstance();
 
 // Initialize Firebase Auth
 export const auth = getAuth(firebaseApp);
@@ -85,11 +96,17 @@ export function handleFirestoreError(error: unknown, operationType: OperationTyp
 // Test connection on boot as mandated by Firebase skill
 export async function testFirestoreConnection(): Promise<boolean> {
   try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('the client is offline - connection timeout')), 2500)
+    );
+    await Promise.race([
+      getDocFromServer(doc(db, 'test', 'connection')),
+      timeoutPromise
+    ]);
     return true;
   } catch (error) {
     if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn('Firebase client is offline. Checking network configuration.');
+      console.info('Firebase operates in local offline-cache mode.');
     }
     return false;
   }

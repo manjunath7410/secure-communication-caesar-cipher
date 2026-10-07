@@ -49,6 +49,12 @@ service cloud.firestore {
         data.timestamp is string && data.timestamp.size() <= 64;
     }
 
+    // Connectivity test document: /test/{docId}
+    match /test/{docId} {
+      allow get: if isValidId(docId);
+      allow list, create, update, delete: if false;
+    }
+
     // User profile documents: /users/{userId}
     match /users/{userId} {
       allow get: if isOwner(userId);
