@@ -5,7 +5,6 @@ import {
   Unlock,
   History,
   BookOpen,
-  MapPin,
   Settings,
   User,
   Sun,
@@ -13,6 +12,7 @@ import {
   Laptop,
   LogOut,
   Radio,
+  FileText,
 } from 'lucide-react';
 import { AppView } from '../../types/navigation';
 import { useAuth } from '../../hooks/useAuth';
@@ -38,8 +38,8 @@ export const DesktopSidebar: React.FC<DesktopSidebarProps> = ({
     { id: 'encrypt', label: 'Encrypt', icon: Lock },
     { id: 'decrypt', label: 'Decrypt', icon: Unlock },
     { id: 'history', label: 'History', icon: History },
-    { id: 'map', label: 'Relay Map', icon: MapPin },
     { id: 'learn', label: 'Learn', icon: BookOpen },
+    { id: 'report', label: 'Project Report', icon: FileText },
   ];
 
   const cycleTheme = () => {

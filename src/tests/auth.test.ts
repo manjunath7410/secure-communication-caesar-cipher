@@ -47,7 +47,7 @@ export async function runAuthTests(): Promise<TestResult[]> {
   };
 
   // Ensure fresh clean state
-  authService.resetToDemoUsers();
+  await authService.resetToDemoUsers();
 
   // Test 1: Successful Registration
   await runTest('1. Successful operator registration', async () => {

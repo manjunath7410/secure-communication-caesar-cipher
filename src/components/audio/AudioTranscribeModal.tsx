@@ -143,7 +143,7 @@ export const AudioTranscribeModal: React.FC<AudioTranscribeModalProps> = ({
               <h3 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5">
                 Voice Dictation & Transcription
                 <span className="text-[10px] font-mono font-medium px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
-                  gemini-3.5-transcribe
+                  gemini-audio
                 </span>
               </h3>
               <p className="text-xs text-neutral-500 dark:text-neutral-400">
@@ -205,7 +205,7 @@ export const AudioTranscribeModal: React.FC<AudioTranscribeModalProps> = ({
                     .toString()
                     .padStart(2, '0')}`
                 : isTranscribing
-                ? 'Transcribing audio with gemini-3.5-transcribe...'
+                ? 'Transcribing audio with Gemini...'
                 : transcribedText
                 ? 'Transcription completed'
                 : 'Tap microphone to begin dictating'}

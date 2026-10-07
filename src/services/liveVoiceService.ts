@@ -3,11 +3,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+export interface CryptoActionResult {
+  operation: 'ENCRYPT' | 'DECRYPT' | 'BRUTE_FORCE' | 'SET_SHIFT' | 'NAVIGATE' | 'VAULT_SAVED' | 'RADIO_BROADCAST';
+  plaintext?: string;
+  ciphertext?: string;
+  shift?: number;
+  formula?: string;
+  page?: string;
+  id?: string;
+  frequency?: string;
+  topCandidate?: { shift: number; candidatePlaintext: string; score: number; isRot13?: boolean };
+  topCandidates?: Array<{ shift: number; candidatePlaintext: string; score: number; isRot13?: boolean }>;
+  notes?: string;
+}
+
 export interface LiveVoiceMessage {
   id: string;
-  sender: 'user' | 'assistant';
+  sender: 'user' | 'assistant' | 'system';
   text: string;
   timestamp: number;
+  cryptoResult?: CryptoActionResult;
 }
 
 export type LiveVoiceState =
@@ -23,6 +38,7 @@ export interface LiveVoiceCallbacks {
   onMessage: (message: LiveVoiceMessage) => void;
   onVolumeChange?: (inputVol: number, outputVol: number) => void;
   onError: (errorMessage: string) => void;
+  onCryptoAction?: (action: string, result: CryptoActionResult) => void;
 }
 
 export class LiveVoiceClient {
@@ -182,6 +198,10 @@ export class LiveVoiceClient {
   private handleServerMessage(data: any) {
     if (data.type === 'session_ready') {
       this.setState('listening');
+    } else if (data.type === 'crypto_action') {
+      if (this.callbacks.onCryptoAction) {
+        this.callbacks.onCryptoAction(data.action, data.result);
+      }
     } else if (data.type === 'server_chunk') {
       if (data.interrupted) {
         this.stopActivePlayback();

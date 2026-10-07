@@ -24,7 +24,6 @@ import { RegisterPage } from './pages/RegisterPage';
 import { EncryptPage } from './pages/EncryptPage';
 import { DecryptPage } from './pages/DecryptPage';
 import { HistoryPage } from './pages/HistoryPage';
-import { MapPage } from './pages/MapPage';
 import { LearnPage } from './pages/LearnPage';
 import { BruteForcePage } from './pages/BruteForcePage';
 import { AboutPage } from './pages/AboutPage';
@@ -32,6 +31,7 @@ import { SecurityInfoPage } from './pages/SecurityInfoPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { HealthStatusPage } from './pages/HealthStatusPage';
 import { AccountPage } from './pages/AccountPage';
+import { ReportPage } from './pages/ReportPage';
 import { LiveVoiceCopilot } from './components/audio/LiveVoiceCopilot';
 
 // Types & Hooks
@@ -150,10 +150,6 @@ function AppContent() {
             <HistoryPage onNavigate={setCurrentView} onToast={handleToast} />
           )}
 
-          {currentView === 'map' && (
-            <MapPage onNavigate={setCurrentView} onToast={handleToast} />
-          )}
-
           {(currentView === 'learn' || currentView === 'bruteforce' || currentView === 'about' || currentView === 'security' || currentView === 'architecture') && (
             <LearnPage onNavigate={setCurrentView} onToast={handleToast} />
           )}
@@ -175,6 +171,10 @@ function AppContent() {
           {currentView === 'account' && (
             <AccountPage onNavigate={setCurrentView} onToast={handleToast} />
           )}
+
+          {currentView === 'report' && (
+            <ReportPage onNavigate={setCurrentView} onToast={handleToast} />
+          )}
         </main>
       </div>
 
@@ -186,6 +186,7 @@ function AppContent() {
         isOpen={isVoiceCopilotOpen}
         onClose={() => setIsVoiceCopilotOpen(false)}
         onToast={handleToast}
+        onNavigate={setCurrentView}
       />
 
       {/* Mobile Navigation Drawer & Bottom Bar */}

@@ -12,7 +12,6 @@ import {
   Cloud,
   CheckCircle2,
   Database,
-  MapPin,
   Radio,
 } from 'lucide-react';
 import { UserSettings, AppView } from '../types/navigation';
@@ -235,43 +234,6 @@ export const SettingsPage: React.FC<SettingsPageProps> = ({
             <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200/60 dark:border-neutral-800/80">
               <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Security Rules</span>
               <span className="text-neutral-800 dark:text-neutral-200 font-medium">ABAC Zero-Trust Deployed</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Google Maps Platform Integration */}
-        <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-5 sm:p-6 shadow-xs space-y-3 transition-colors">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                <MapPin className="w-4 h-4" />
-              </div>
-              <div>
-                <h2 className="text-sm font-semibold text-neutral-900 dark:text-neutral-100">
-                  Google Maps Platform
-                </h2>
-                <p className="text-xs text-neutral-500 dark:text-neutral-400">
-                  Global cryptographic relay station visualization and routing maps.
-                </p>
-              </div>
-            </div>
-            <button
-              type="button"
-              onClick={() => onNavigate('map')}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white transition-colors cursor-pointer shadow-2xs"
-            >
-              <span>Open Map</span>
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs pt-1">
-            <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200/60 dark:border-neutral-800/80">
-              <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Renderer SDK</span>
-              <span className="font-mono text-neutral-800 dark:text-neutral-200 font-medium">@vis.gl/react-google-maps</span>
-            </div>
-            <div className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-950 border border-neutral-200/60 dark:border-neutral-800/80">
-              <span className="text-neutral-400 block text-[10px] uppercase font-semibold">Active Markers</span>
-              <span className="text-neutral-800 dark:text-neutral-200 font-medium">8 Global Telemetry Nodes</span>
             </div>
           </div>
         </div>

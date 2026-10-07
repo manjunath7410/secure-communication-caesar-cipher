@@ -14,6 +14,7 @@ import { runPWATests } from './pwa.test';
 import { runIntegrationTests } from './integration.test';
 import { runAndroidQATests } from './androidQA.test';
 import { runShiftSyncTests } from './shiftSync.test';
+import { runTacticalRadioPresetsTests } from './tacticalRadioPresets.test';
 import { defaultApiClient } from '../services/apiClient';
 
 async function main() {
@@ -198,6 +199,19 @@ async function main() {
     } else {
       totalFailed++;
       console.log(`    ✗ [${t.category}] ${t.testName} -> FAILED (${t.details})`);
+    }
+  }
+
+  // Phase 17: Tactical Radio Presets & Simulator Tests
+  console.log('\n--- EXECUTING PHASE 17: TACTICAL RADIO PRESETS & SIMULATOR TESTS ---');
+  const presetResults = await runTacticalRadioPresetsTests();
+  for (const t of presetResults) {
+    if (t.passed) {
+      totalPassed++;
+      console.log(`    ✓ [${t.category}] ${t.name} (${t.durationMs.toFixed(1)}ms)`);
+    } else {
+      totalFailed++;
+      console.log(`    ✗ [${t.category}] ${t.name} -> FAILED (${t.message})`);
     }
   }
 

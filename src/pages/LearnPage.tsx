@@ -6,12 +6,15 @@ import {
   Flame,
   Copy,
   Check,
+  FileText,
+  Download,
 } from 'lucide-react';
 import { executeBruteForceAttack } from '../services/bruteForceService';
 import { BruteForceAnalysis } from '../types/bruteForce';
 import { copyToClipboard } from '../utils/clipboard';
 import { useShift } from '../context/ShiftContext';
 import { AppView } from '../types/navigation';
+import { MilitaryRadioSimulator } from '../components/dashboard/MilitaryRadioSimulator';
 
 interface LearnPageProps {
   onNavigate: (view: AppView) => void;
@@ -65,14 +68,27 @@ export const LearnPage: React.FC<LearnPageProps> = ({ onNavigate, onToast }) => 
   return (
     <div className="w-full max-w-3xl mx-auto px-4 sm:px-6 py-6 sm:py-10 space-y-10">
       {/* Header */}
-      <div className="space-y-1">
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
-          Learn How Caesar Cipher Works
-        </h1>
-        <p className="text-sm text-neutral-500 dark:text-neutral-400">
-          An easy-to-understand visual guide to classical shift encryption and why it is not secure.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+            Learn How Caesar Cipher Works
+          </h1>
+          <p className="text-sm text-neutral-500 dark:text-neutral-400">
+            An easy-to-understand visual guide to classical shift encryption, real-world military scenarios, and why it is not secure.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => onNavigate('report')}
+          className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-blue-50 dark:bg-blue-950/50 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-xs font-semibold shrink-0 transition-colors cursor-pointer"
+        >
+          <FileText className="w-4 h-4" />
+          <span>Full Project Report (23 Ch)</span>
+        </button>
       </div>
+
+      {/* Interactive Scenario & Algorithm Simulator */}
+      <MilitaryRadioSimulator onNavigate={onNavigate} onToast={onToast} />
 
       {/* 1. What is Caesar Cipher */}
       <section className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-2xl p-6 shadow-xs space-y-3">

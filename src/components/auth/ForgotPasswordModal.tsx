@@ -38,10 +38,14 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
 
     setIsLoading(true);
     try {
-      const res = await forgotPassword(email);
+      const res: any = await forgotPassword(email);
+      const code = res?.reset_code || res?.resetToken;
+      if (code) {
+        setResetToken(code);
+      }
       setStatusMessage(res.message || "If an account exists for this email, you'll receive reset instructions.");
       setStep('sent');
-      onToast?.('info', 'Reset Instructions Sent', 'Check your inbox for password reset instructions.');
+      onToast?.('info', 'Recovery Code Generated', 'Use the authorization code to set a new password.');
     } catch (err: any) {
       setError(err.message || 'Unable to process reset request. Please try again.');
     } finally {
@@ -176,20 +180,31 @@ export const ForgotPasswordModal: React.FC<ForgotPasswordModalProps> = ({
             </div>
             <div className="space-y-1.5">
               <h3 className="text-lg font-bold text-neutral-900 dark:text-neutral-50">
-                Check your inbox
+                {resetToken ? 'Recovery Code Generated' : 'Check your inbox'}
               </h3>
               <p className="text-xs text-neutral-600 dark:text-neutral-400 max-w-sm mx-auto leading-relaxed">
                 {statusMessage || "If an account exists for this email, you'll receive reset instructions shortly."}
               </p>
             </div>
 
+            {resetToken && (
+              <div className="p-3.5 rounded-xl bg-blue-50 dark:bg-blue-950/50 border border-blue-200 dark:border-blue-900/60 text-center space-y-1">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400">
+                  Password Recovery Authorization Code
+                </span>
+                <p className="font-mono text-base font-bold tracking-widest text-blue-950 dark:text-blue-100 select-all">
+                  {resetToken}
+                </p>
+              </div>
+            )}
+
             <div className="pt-2 flex flex-col gap-2">
               <button
                 type="button"
                 onClick={() => setStep('reset')}
-                className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium cursor-pointer"
+                className="w-full py-2.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer shadow-xs transition-colors"
               >
-                I have a reset code
+                {resetToken ? 'Set New Password With This Code' : 'I have a reset code'}
               </button>
               <button
                 type="button"

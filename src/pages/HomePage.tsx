@@ -24,6 +24,8 @@ import {
   Plus,
   RefreshCw,
   Cpu,
+  FileText,
+  Download,
 } from 'lucide-react';
 import { AppView } from '../types/navigation';
 import { useOperationsLog } from '../hooks/useOperationsLog';
@@ -32,6 +34,7 @@ import { Logo } from '../components/branding/Logo';
 import { useShift } from '../context/ShiftContext';
 import { LiveVoiceCopilot } from '../components/audio/LiveVoiceCopilot';
 import { AudioTranscribeModal } from '../components/audio/AudioTranscribeModal';
+import { MilitaryRadioSimulator } from '../components/dashboard/MilitaryRadioSimulator';
 
 interface HomePageProps {
   onNavigate: (view: AppView) => void;
@@ -96,7 +99,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
     } else {
       onNavigate('decrypt');
     }
-    onToast?.('info', 'Voice Dictation Captured', 'Transcribed with gemini-3.5-transcribe.');
+    onToast?.('info', 'Voice Dictation Captured', 'Transcribed with Gemini Speech-to-Text.');
   };
 
   const recentActivities = activities.slice(0, 5);
@@ -206,6 +209,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
         </div>
       </div>
 
+      {/* Interactive Military Radio Communication Scenario Simulator */}
+      <MilitaryRadioSimulator onNavigate={onNavigate} onToast={onToast} />
+
       {/* Real-Time AI Operations Banner (gemini-3.8-live & gemini-3.5-transcribe) */}
       <div className="grid grid-cols-2 gap-4">
         {/* Live Copilot */}
@@ -253,7 +259,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
                   Audio Transcription
                 </h4>
                 <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300 font-semibold">
-                  gemini-3.5-transcribe
+                  gemini-audio
                 </span>
               </div>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">
@@ -262,6 +268,39 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
             </div>
           </div>
           <ChevronRight className="w-5 h-5 text-neutral-400" />
+        </div>
+      </div>
+
+      {/* Comprehensive Technical Project Report Banner */}
+      <div
+        onClick={() => onNavigate('report')}
+        className="p-5 rounded-2xl bg-gradient-to-r from-blue-900 to-indigo-950 text-white shadow-sm hover:shadow-md cursor-pointer transition-all flex items-center justify-between group border border-blue-800/60"
+      >
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+            <FileText className="w-6 h-6 text-blue-300" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-bold text-white tracking-wide">
+                Comprehensive Technical Project Report
+              </h4>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
+                23 Chapters
+              </span>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 font-semibold">
+                Download Ready
+              </span>
+            </div>
+            <p className="text-xs text-blue-200/80 mt-1">
+              Full order-wise report: Description, Math Models, System Architecture, Algorithms, Testing (339 tests), and References.
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <span className="text-xs font-semibold text-blue-200 group-hover:text-white flex items-center gap-1 transition-colors">
+            View & Download <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+          </span>
         </div>
       </div>
 
@@ -477,6 +516,9 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
         </div>
       </div>
 
+      {/* Interactive Military Radio Communication Scenario Simulator */}
+      <MilitaryRadioSimulator onNavigate={onNavigate} onToast={onToast} />
+
       {/* 3. Real-Time AI Intelligence Grid (Live API & Transcribe) */}
       <div className="grid grid-cols-2 gap-3">
         {/* Live Tactical Voice Card */}
@@ -524,7 +566,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
               Voice Dictation
             </h4>
             <p className="text-[10px] font-mono text-neutral-500 dark:text-neutral-400 mt-0.5">
-              gemini-3.5-transcribe
+              gemini-audio
             </p>
           </div>
         </div>
@@ -600,6 +642,35 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
           </div>
         </div>
         <ChevronRight className="w-4 h-4 text-neutral-400" />
+      </div>
+
+      {/* Mobile Project Report Card */}
+      <div
+        onClick={() => onNavigate('report')}
+        className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-900 to-indigo-950 text-white border border-blue-800/80 shadow-xs flex items-center justify-between active:scale-[0.98] transition-all cursor-pointer"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center shrink-0">
+            <FileText className="w-5 h-5 text-blue-300" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5">
+              <h4 className="text-xs font-bold text-white leading-tight">
+                Project Report
+              </h4>
+              <span className="text-[9px] font-mono px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-semibold">
+                23 Chapters
+              </span>
+            </div>
+            <p className="text-[10px] text-blue-200/80 mt-0.5">
+              Download order-wise report (.md / .txt)
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-1 text-[11px] font-semibold text-blue-300">
+          <Download className="w-3.5 h-3.5" />
+          <span>Save</span>
+        </div>
       </div>
 
       {/* 6. Recent Activity Log Feed */}
@@ -722,6 +793,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onNavigate, onToast }) => {
         isOpen={isLiveVoiceOpen}
         onClose={() => setIsLiveVoiceOpen(false)}
         onToast={onToast}
+        onNavigate={onNavigate}
       />
 
       {/* Real-time Microphone Audio Transcriber (gemini-3.5-transcribe) */}

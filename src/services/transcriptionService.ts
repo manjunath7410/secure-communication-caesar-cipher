@@ -106,7 +106,7 @@ export class AudioRecorderService {
 }
 
 /**
- * Transcribe recorded audio with server-side gemini-3.5-transcribe
+ * Transcribe recorded audio with server-side Gemini audio transcription
  */
 export async function transcribeAudio(
   base64Audio: string,
@@ -135,7 +135,7 @@ export async function transcribeAudio(
   const data = await response.json();
   return {
     text: data.text || '',
-    model: data.model || 'gemini-3.5-transcribe',
+    model: data.model || 'gemini-3-flash-preview',
     timestamp: data.timestamp || Date.now(),
   };
 }

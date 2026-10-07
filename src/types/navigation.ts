@@ -5,7 +5,6 @@ export type AppView =
   | 'decrypt'
   | 'voice'
   | 'history'
-  | 'map'
   | 'learn'
   | 'settings'
   | 'account'
@@ -16,7 +15,8 @@ export type AppView =
   | 'about'
   | 'security'
   | 'health'
-  | 'architecture';
+  | 'architecture'
+  | 'report';
 
 export interface NavItem {
   id: AppView;

@@ -693,8 +693,13 @@ class AuthService {
   /**
    * Reset to demo users (used in testing)
    */
-  public resetToDemoUsers(): void {
+  public async resetToDemoUsers(): Promise<void> {
     this.logout();
+    try {
+      await defaultApiClient.post('/test/reset', {});
+    } catch {
+      // Backend may be offline or in mocked mode
+    }
   }
 }
 

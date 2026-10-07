@@ -43,7 +43,7 @@ export const MicTranscribeButton: React.FC<MicTranscribeButtonProps> = ({
         type="button"
         onClick={() => setIsOpen(true)}
         className={`inline-flex items-center justify-center font-medium rounded-xl transition-all active:scale-95 cursor-pointer ${sizeClasses[size]} ${variantClasses[variant]} ${className}`}
-        title="Dictate with microphone (gemini-3.5-transcribe)"
+        title="Dictate with microphone (Gemini Audio Transcription)"
       >
         <Mic className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
         <span>Voice Dictate</span>

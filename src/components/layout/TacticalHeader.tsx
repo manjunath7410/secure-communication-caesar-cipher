@@ -43,8 +43,6 @@ export const TacticalHeader: React.FC<HeaderProps> = ({
         return 'Decrypt Message';
       case 'history':
         return 'Message History';
-      case 'map':
-        return 'Relay Station Map';
       case 'learn':
       case 'about':
       case 'security':
@@ -59,6 +57,8 @@ export const TacticalHeader: React.FC<HeaderProps> = ({
         return 'Create Account';
       case 'health':
         return 'System Health & Tests';
+      case 'report':
+        return 'Project Report & Documentation';
       default:
         return 'Secure Communication';
     }

@@ -4,7 +4,6 @@ import {
   Lock,
   Unlock,
   History,
-  MapPin,
   BookOpen,
   Menu,
   Settings,
@@ -13,6 +12,7 @@ import {
   Cpu,
   X,
   Radio,
+  FileText,
 } from 'lucide-react';
 import { AppView } from '../../types/navigation';
 import { useAuth } from '../../hooks/useAuth';
@@ -40,9 +40,9 @@ export const MobileNavigation: React.FC<MobileNavigationProps> = ({
   ];
 
   const moreItems: { id: AppView; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: 'report', label: 'Project Report', icon: FileText },
     { id: 'bruteforce', label: 'Brute Force', icon: Cpu },
     { id: 'learn', label: 'Learn', icon: BookOpen },
-    { id: 'map', label: 'Relay Map', icon: MapPin },
     { id: 'settings', label: 'Settings', icon: Settings },
     { id: isAuthenticated ? 'account' : 'login', label: 'Account', icon: User },
     { id: 'security', label: 'Security', icon: Shield },

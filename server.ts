@@ -4,7 +4,7 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import { WebSocketServer, WebSocket } from 'ws';
-import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
+import { GoogleGenAI, LiveServerMessage, Modality, Type } from '@google/genai';
 import { createServer as createViteServer } from 'vite';
 
 const app = express();
@@ -520,16 +520,20 @@ apiRouter.post('/auth/forgot-password', (req: Request, res: Response) => {
   }
 
   const user = usersDb.get(email);
+  let resetCode: string | undefined;
   if (user) {
-    const resetToken = crypto.randomBytes(20).toString('hex');
-    user.resetToken = resetToken;
+    resetCode = crypto.randomBytes(3).toString('hex').toUpperCase();
+    user.resetToken = resetCode;
     user.resetTokenExpires = Date.now() + 15 * 60 * 1000; // 15 mins
   }
 
-  // Account enumeration prevention: Always return a generic success message
   return res.json({
     status: 'ok',
-    message: "If an account exists for this email, you'll receive reset instructions.",
+    message: user
+      ? `A tactical recovery code [${resetCode}] has been generated for ${email}. Use this code to set your new password.`
+      : "If an account exists for this email, you'll receive reset instructions.",
+    reset_code: resetCode,
+    resetToken: resetCode,
   });
 });
 
@@ -553,7 +557,11 @@ apiRouter.post('/auth/reset-password', (req: Request, res: Response) => {
   }
 
   const user = Array.from(usersDb.values()).find(
-    (u) => u.resetToken === token && u.resetTokenExpires && u.resetTokenExpires > Date.now()
+    (u) =>
+      u.resetToken &&
+      u.resetToken.toUpperCase() === token.toUpperCase() &&
+      u.resetTokenExpires &&
+      u.resetTokenExpires > Date.now()
   );
 
   if (!user) {
@@ -944,33 +952,74 @@ apiRouter.post('/transcribe', async (req: Request, res: Response) => {
     const cleanBase64 = typeof audio === 'string' && audio.includes(',') ? audio.split(',')[1] : audio;
     const cleanMime = mimeType || 'audio/webm';
 
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-transcribe',
-      contents: {
-        parts: [
-          {
-            inlineData: {
-              data: cleanBase64,
-              mimeType: cleanMime,
-            },
-          },
-          {
-            text: 'Transcribe this spoken audio message accurately into text verbatim. Return only the transcription text without commentary, timestamps, or quotation marks.',
-          },
-        ],
-      },
-    });
+    let text = '';
+    let usedModel = 'gemini-3-flash-preview';
 
-    const text = response.text?.trim() || '';
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: cleanBase64,
+                mimeType: cleanMime,
+              },
+            },
+            {
+              text: 'Transcribe this spoken audio message accurately into text verbatim. Return only the transcription text without commentary, timestamps, or quotation marks.',
+            },
+          ],
+        },
+      });
+
+      text = response.text?.trim() || '';
+    } catch (primaryErr: any) {
+      console.warn('[Transcription Warning] gemini-3-flash-preview attempt failed, attempting fallback to gemini-3.8-flash:', primaryErr?.message || primaryErr);
+
+      // Resilient fallback: gemini-3.8-flash for multimodal audio transcription
+      try {
+        usedModel = 'gemini-3.8-flash';
+        const fallbackResponse = await ai.models.generateContent({
+          model: 'gemini-3.8-flash',
+          contents: {
+            parts: [
+              {
+                inlineData: {
+                  data: cleanBase64,
+                  mimeType: cleanMime,
+                },
+              },
+              {
+                text: 'Transcribe this spoken audio message accurately into text verbatim. Return only the transcription text without commentary, timestamps, or quotation marks.',
+              },
+            ],
+          },
+        });
+        text = fallbackResponse.text?.trim() || '';
+      } catch (fallbackErr: any) {
+        console.error('[Transcription Error] All transcription models failed:', fallbackErr?.message || fallbackErr);
+        throw fallbackErr || primaryErr;
+      }
+    }
+
     return res.json({
       text,
-      model: 'gemini-3.5-transcribe',
+      model: usedModel,
       timestamp: Date.now(),
     });
   } catch (err: any) {
     console.error('[Transcription Error]:', err);
+    let errorMessage = err?.message || 'Audio transcription failed.';
+    try {
+      const parsed = JSON.parse(err.message);
+      if (parsed.error?.message) {
+        errorMessage = parsed.error.message;
+      }
+    } catch {}
+
     return res.status(500).json({
-      error: err?.message || 'Audio transcription failed with model gemini-3.5-transcribe.',
+      error: errorMessage,
     });
   }
 });
@@ -982,9 +1031,39 @@ apiRouter.get('/live-status', (req: Request, res: Response) => {
     liveAvailable: true,
     hasApiKey: hasKey,
     liveModel: 'gemini-3.8-live',
-    transcribeModel: 'gemini-3.5-transcribe',
+    transcribeModel: 'gemini-3-flash-preview',
     wsPath: '/api/live',
   });
+});
+
+// 14. Test Reset Endpoint (For Automated QA and Idempotent Test Suites)
+apiRouter.post('/test/reset', (req: Request, res: Response) => {
+  usersDb.clear();
+  messagesDb.clear();
+  rateLimitMap.clear();
+  seedInitialData();
+  res.json({ success: true, message: 'Database reset to demo baseline.' });
+});
+
+app.get('/PROJECT_REPORT.md', (req: Request, res: Response) => {
+  const filePath = path.join(process.cwd(), 'public', 'PROJECT_REPORT.md');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.sendFile(filePath);
+  } else {
+    res.status(404).send('Report not found');
+  }
+});
+
+apiRouter.get('/report', (req: Request, res: Response) => {
+  const filePath = path.join(process.cwd(), 'public', 'PROJECT_REPORT.md');
+  if (fs.existsSync(filePath)) {
+    res.setHeader('Content-Type', 'text/markdown; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="SECURE_MILITARY_COMMUNICATION_CAESAR_CIPHER_REPORT.md"');
+    res.sendFile(filePath);
+  } else {
+    res.status(404).json({ error: 'Report file not found' });
+  }
 });
 
 // Mount Routes
@@ -1016,6 +1095,71 @@ async function start() {
   }
 
   const server = http.createServer(app);
+
+  // Helper functions for Live Voice Cryptographic Operations
+  function liveCaesarEncrypt(text: string, shift: number): string {
+    const k = ((Math.floor(shift) % 26) + 26) % 26;
+    let out = '';
+    for (let i = 0; i < text.length; i++) {
+      const code = text.charCodeAt(i);
+      if (code >= 65 && code <= 90) {
+        out += String.fromCharCode(((code - 65 + k) % 26) + 65);
+      } else if (code >= 97 && code <= 122) {
+        out += String.fromCharCode(((code - 97 + k) % 26) + 97);
+      } else {
+        out += text[i];
+      }
+    }
+    return out;
+  }
+
+  function liveCaesarDecrypt(ciphertext: string, shift: number): string {
+    const k = ((Math.floor(shift) % 26) + 26) % 26;
+    let out = '';
+    for (let i = 0; i < ciphertext.length; i++) {
+      const code = ciphertext.charCodeAt(i);
+      if (code >= 65 && code <= 90) {
+        out += String.fromCharCode(((code - 65 - k + 26) % 26) + 65);
+      } else if (code >= 97 && code <= 122) {
+        out += String.fromCharCode(((code - 97 - k + 26) % 26) + 97);
+      } else {
+        out += ciphertext[i];
+      }
+    }
+    return out;
+  }
+
+  function liveQuickBruteForce(ciphertext: string) {
+    const clean = String(ciphertext || '');
+    const candidates: Array<{ shift: number; candidatePlaintext: string; score: number; isRot13: boolean }> = [];
+    const freqMap: Record<string, number> = {
+      E: 12.7, T: 9.1, A: 8.2, O: 7.5, I: 7.0, N: 6.7, S: 6.3, H: 6.1, R: 6.0, D: 4.3, L: 4.0, C: 2.8, U: 2.8, M: 2.4, W: 2.4, F: 2.2, G: 2.0, Y: 2.0, P: 1.9, B: 1.5, V: 1.0, K: 0.8, J: 0.15, X: 0.15, Q: 0.1, Z: 0.07,
+    };
+
+    for (let k = 0; k < 26; k++) {
+      const pt = liveCaesarDecrypt(clean, k);
+      let score = 0;
+      for (let i = 0; i < pt.length; i++) {
+        const ch = pt[i].toUpperCase();
+        if (freqMap[ch]) score += freqMap[ch];
+        if (ch === ' ') score += 5;
+      }
+      candidates.push({
+        shift: k,
+        candidatePlaintext: pt,
+        score: Math.round(score),
+        isRot13: k === 13,
+      });
+    }
+
+    candidates.sort((a, b) => b.score - a.score);
+    return {
+      operation: 'BRUTE_FORCE',
+      ciphertext: clean,
+      topCandidate: candidates[0],
+      topCandidates: candidates.slice(0, 5),
+    };
+  }
 
   // WebSocket Server for Live Voice Conversations (gemini-3.8-live)
   const wss = new WebSocketServer({ noServer: true });
@@ -1067,11 +1211,200 @@ async function start() {
             },
           },
           systemInstruction:
-            'You are an intelligent tactical cryptography and radio communication copilot for the Secure Military Communication platform. You assist operators with encryption shifts, Caesar cipher analysis, frequency distributions, tactical intelligence messages, and military radio protocols. Keep spoken answers crisp, concise, articulate, and mission-focused.',
+            `You are the Tactical Cryptography & Radio Voice Copilot for the Secure Military Communication platform.
+Operators command you to perform live military cryptography, cipher calculations, brute-force recovery, frequency intelligence, and tactical radio duties.
+
+MANDATORY ACTION INSTRUCTIONS:
+1. When asked to ENCRYPT text (e.g. "Encrypt Attack at Dawn with shift 3", "Scramble Bravo team with shift 7", "Encrypt with ROT13"):
+   CALL the tool 'encrypt_message' IMMEDIATELY with the text and shift (use 13 if ROT13 is requested). State the computed ciphertext and shift clearly over radio protocol.
+2. When asked to DECRYPT text (e.g. "Decrypt DWWDFN DW GDZQ with shift 3", "Decode this message"):
+   CALL the tool 'decrypt_message' IMMEDIATELY with the ciphertext and shift. State the recovered plaintext over radio protocol.
+3. When asked to CRACK, BREAK, or BRUTE-FORCE an intercepted ciphertext:
+   CALL 'brute_force_cryptanalysis' with the ciphertext. Report the top candidate plaintext and the discovered key shift.
+4. When asked to CHANGE or SET SHIFT (e.g. "Set shift to 13", "Change key to 5"):
+   CALL 'set_active_shift'. Confirm the new active shift.
+5. When asked to NAVIGATE (e.g. "Go to encrypt page", "Open history", "Open brute force analyzer", "Go home", "Open settings"):
+   CALL 'navigate_to_page'.
+6. When asked to SAVE or VAULT a message:
+   CALL 'save_vault_message'.
+7. When asked to TRANSMIT or BROADCAST:
+   CALL 'simulate_radio_broadcast'.
+
+Keep all spoken voice communications crisp, tactical, concise, articulate, and military-protocol formatted. Always confirm the exact cipher outcome.`,
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'encrypt_message',
+                  description: 'Encrypts plaintext using Caesar Cipher substitution with specified shift k (0 to 25). Always call this when user asks to encrypt text.',
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      text: { type: Type.STRING, description: 'The plaintext message to encrypt' },
+                      shift: { type: Type.INTEGER, description: 'The Caesar shift key k between 0 and 25' },
+                    },
+                    required: ['text', 'shift'],
+                  },
+                },
+                {
+                  name: 'decrypt_message',
+                  description: 'Decrypts ciphertext using Caesar Cipher substitution with specified shift k (0 to 25). Always call this when user asks to decrypt text.',
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      ciphertext: { type: Type.STRING, description: 'The ciphertext to decrypt' },
+                      shift: { type: Type.INTEGER, description: 'The Caesar shift key k between 0 and 25' },
+                    },
+                    required: ['ciphertext', 'shift'],
+                  },
+                },
+                {
+                  name: 'brute_force_cryptanalysis',
+                  description: 'Executes a brute-force attack across all 26 possible Caesar shifts to crack an unknown ciphertext.',
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      ciphertext: { type: Type.STRING, description: 'The ciphertext to crack' },
+                    },
+                    required: ['ciphertext'],
+                  },
+                },
+                {
+                  name: 'set_active_shift',
+                  description: 'Sets or changes the active Caesar cipher shift key in the application interface.',
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      shift: { type: Type.INTEGER, description: 'New shift key between 0 and 25' },
+                    },
+                    required: ['shift'],
+                  },
+                },
+                {
+                  name: 'navigate_to_page',
+                  description: 'Navigates the user to a specific screen in the application.',
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      page: { type: Type.STRING, description: 'Destination page ("home", "encrypt", "decrypt", "history", "learn", "bruteforce", "settings", "account")' },
+                    },
+                    required: ['page'],
+                  },
+                },
+                {
+                  name: 'save_vault_message',
+                  description: 'Saves an encrypted message to the tactical vault message history.',
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      ciphertext: { type: Type.STRING, description: 'Ciphertext message to save' },
+                      shift: { type: Type.INTEGER, description: 'Shift key used' },
+                      notes: { type: Type.STRING, description: 'Tactical notes or description' },
+                    },
+                    required: ['ciphertext', 'shift'],
+                  },
+                },
+                {
+                  name: 'simulate_radio_broadcast',
+                  description: 'Simulates transmitting an encrypted military radio broadcast with audio telemetry.',
+                  parameters: {
+                    type: Type.OBJECT,
+                    properties: {
+                      message: { type: Type.STRING, description: 'Ciphertext to transmit' },
+                      shift: { type: Type.INTEGER, description: 'Shift key used' },
+                    },
+                    required: ['message'],
+                  },
+                },
+              ],
+            },
+          ],
         },
         callbacks: {
-          onmessage: (message: LiveServerMessage) => {
+          onmessage: async (message: LiveServerMessage) => {
             if (clientWs.readyState !== WebSocket.OPEN) return;
+
+            // Handle Tool Calls from Gemini Live
+            if (message.toolCall?.functionCalls) {
+              const functionResponses: any[] = [];
+              for (const call of message.toolCall.functionCalls) {
+                let result: any = null;
+                const args = call.args || {};
+
+                if (call.name === 'encrypt_message') {
+                  const shift = Number(args.shift ?? 3);
+                  const ct = liveCaesarEncrypt(String(args.text || ''), shift);
+                  result = {
+                    operation: 'ENCRYPT',
+                    plaintext: String(args.text || ''),
+                    shift: ((Math.floor(shift) % 26) + 26) % 26,
+                    ciphertext: ct,
+                    formula: `E(x) = (x + ${shift}) mod 26`,
+                  };
+                } else if (call.name === 'decrypt_message') {
+                  const shift = Number(args.shift ?? 3);
+                  const pt = liveCaesarDecrypt(String(args.ciphertext || ''), shift);
+                  result = {
+                    operation: 'DECRYPT',
+                    ciphertext: String(args.ciphertext || ''),
+                    shift: ((Math.floor(shift) % 26) + 26) % 26,
+                    plaintext: pt,
+                    formula: `D(x) = (x - ${shift}) mod 26`,
+                  };
+                } else if (call.name === 'brute_force_cryptanalysis') {
+                  result = liveQuickBruteForce(String(args.ciphertext || ''));
+                } else if (call.name === 'set_active_shift') {
+                  const s = ((Math.floor(Number(args.shift ?? 3)) % 26) + 26) % 26;
+                  result = { operation: 'SET_SHIFT', shift: s, status: 'success' };
+                } else if (call.name === 'navigate_to_page') {
+                  result = { operation: 'NAVIGATE', page: String(args.page || 'home'), status: 'success' };
+                } else if (call.name === 'save_vault_message') {
+                  const msgId = `msg-vault-${Date.now().toString(36)}`;
+                  const shift = Number(args.shift ?? 3);
+                  const newRec: VaultMessageRecord = {
+                    id: msgId,
+                    userId: 'live-operator',
+                    operationType: 'ENCRYPT',
+                    ciphertext: String(args.ciphertext || ''),
+                    shift,
+                    charCount: String(args.ciphertext || '').length,
+                    timestamp: new Date().toISOString(),
+                    notes: String(args.notes || 'Saved via Live Voice Copilot'),
+                  };
+                  messagesDb.set(msgId, newRec);
+                  result = { operation: 'VAULT_SAVED', id: msgId, ciphertext: newRec.ciphertext, shift };
+                } else if (call.name === 'simulate_radio_broadcast') {
+                  result = {
+                    operation: 'RADIO_BROADCAST',
+                    message: String(args.message || ''),
+                    frequency: '142.850 MHz Tactical FM',
+                    status: 'broadcasted',
+                  };
+                }
+
+                functionResponses.push({
+                  id: call.id,
+                  name: call.name,
+                  response: { output: result },
+                });
+
+                if (result) {
+                  clientWs.send(JSON.stringify({
+                    type: 'crypto_action',
+                    action: call.name,
+                    result,
+                  }));
+                }
+              }
+
+              try {
+                await session.sendToolResponse({
+                  functionResponses,
+                });
+              } catch (err: any) {
+                console.warn('[Tool Response Warning]:', err?.message);
+              }
+            }
 
             const audioData = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
             const textData = message.serverContent?.modelTurn?.parts?.find((p: any) => p.text)?.text;
